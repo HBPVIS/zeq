@@ -34,18 +34,19 @@ public:
         : _context( zmq_ctx_new( ))
         , _service( std::string( "_" ) + uri.getScheme() + "._tcp" )
     {
-        const lunchbox::Strings& zmqURIs = _buildSubscriberURI( uri );
-
-        if( zmqURIs.back().empty( ))
-        {
+        if( uri.getScheme().empty( ))
             LBTHROW( std::runtime_error(
-                         "Could not find a (suitable) publisher for " +
-                         boost::lexical_cast< std::string >( uri )));
+                         boost::lexical_cast< std::string >( uri ) +
+                         " is not a valid URI (scheme is missing)."));
+
+        if( !uri.getHost().empty() && uri.getPort() != 0 )
+            _addConnection( buildZmqURI( uri ));
+        else
+        {
+            const lunchbox::Strings& zmqURIs = _buildSubscriberURI();
+            BOOST_FOREACH( const std::string& zmqURI, zmqURIs )
+                _addConnection( zmqURI );
         }
-
-        BOOST_FOREACH( const std::string& zmqURI, zmqURIs )
-            _addConnection( zmqURI );
-
         _service.beginBrowsing( lunchbox::Servus::IF_ALL );
     }
 
@@ -168,14 +169,9 @@ private:
         }
     }
 
-    lunchbox::Strings _buildSubscriberURI( const lunchbox::URI& uri )
+    lunchbox::Strings _buildSubscriberURI()
     {
         lunchbox::Strings uriList;
-        if( !uri.getHost().empty() && uri.getPort() != 0 )
-        {
-            uriList.push_back( buildZmqURI( uri ));
-            return uriList;
-        }
 
         const lunchbox::Strings& instances =
                 _service.discover( lunchbox::Servus::IF_ALL, 500 );
