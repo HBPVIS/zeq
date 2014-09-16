@@ -11,7 +11,7 @@
 #define BOOST_TEST_MODULE zeq
 #include <boost/test/unit_test.hpp>
 
-namespace
+namespace test
 {
 lunchbox::URI buildURI( const std::string& hostname = "" )
 {
