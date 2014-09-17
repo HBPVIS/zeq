@@ -20,6 +20,7 @@ set(ZEQ_SOURCES ${COMMON_SOURCES}
   publisher.cpp
   subscriber.cpp
   vocabulary.cpp)
-set(ZEQ_LINK_LIBRARIES ${LUNCHBOX_LIBRARIES} ${LIBZMQ_LIBRARIES})
+set(ZEQ_LINK_LIBRARIES ${LUNCHBOX_LIBRARIES} ${LIBZMQ_LIBRARIES}
+                       ${Boost_LIBRARIES})
 
 common_library(zeq)

@@ -17,8 +17,8 @@ BOOST_AUTO_TEST_CASE(test_subscribe_to_same_schema)
 BOOST_AUTO_TEST_CASE(test_subscribe_to_different_schema)
 {
     zeq::Publisher publisher( lunchbox::URI( "foo://" ));
-    BOOST_CHECK_THROW( zeq::Subscriber subscriber( lunchbox::URI( "bar://" )),
-                       std::runtime_error );
+    BOOST_CHECK_NO_THROW(
+                zeq::Subscriber subscriber( lunchbox::URI( "bar://" )));
 }
 
 BOOST_AUTO_TEST_CASE(test_publish_receive)
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(test_publish_receive)
     const std::string& portStr = boost::lexical_cast< std::string >( port );
     zeq::Subscriber subscriber( lunchbox::URI( "foo://localhost:" + portStr ));
     BOOST_CHECK( subscriber.registerHandler( zeq::vocabulary::EVENT_CAMERA,
-                                      boost::bind( &test::onCameraEvent, _1 )));
+                                            boost::bind( &test::onCameraEvent, _1 )));
 
     zeq::Publisher publisher( lunchbox::URI( "foo://*:" + portStr ));
 
@@ -53,7 +53,29 @@ BOOST_AUTO_TEST_CASE(test_publish_receive_zeroconf)
     zeq::Subscriber subscriber( lunchbox::URI( "foo://" ));
 
     BOOST_CHECK( subscriber.registerHandler( zeq::vocabulary::EVENT_CAMERA,
-                                      boost::bind( &test::onCameraEvent, _1 )));
+                                            boost::bind( &test::onCameraEvent, _1 )));
+    bool received = false;
+    for( size_t i = 0; i < 20; ++i )
+    {
+        BOOST_CHECK( publisher.publish(
+                         zeq::vocabulary::serializeCamera( test::camera )));
+
+        if( subscriber.receive( 100 ))
+        {
+            received = true;
+            break;
+        }
+    }
+    BOOST_CHECK( received );
+}
+
+BOOST_AUTO_TEST_CASE(test_publish_receive_late_zeroconf)
+{
+    zeq::Subscriber subscriber( lunchbox::URI( "foo://" ));
+    zeq::Publisher publisher( lunchbox::URI( "foo://" ));
+
+    BOOST_CHECK( subscriber.registerHandler( zeq::vocabulary::EVENT_CAMERA,
+                                             boost::bind( &test::onCameraEvent, _1 )));
     bool received = false;
     for( size_t i = 0; i < 20; ++i )
     {
