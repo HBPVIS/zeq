@@ -1,0 +1,12 @@
+
+namespace zeq;
+
+table IDSelection
+{
+  ids:[uint];
+}
+
+table ToggleIDSelection
+{
+  ids:[uint];
+}

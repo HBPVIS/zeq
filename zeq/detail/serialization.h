@@ -7,7 +7,7 @@
 #define ZEQ_DETAIL_SERIALIZATION_H
 
 #include <zeq/camera_generated.h>
-#include <zeq/selection_generated.h>
+#include <zeq/selections_generated.h>
 #include <zeq/vocabulary.h>
 #include "event.h"
 #include <lunchbox/debug.h>
@@ -17,53 +17,85 @@ namespace zeq
 namespace detail
 {
 
+template< typename T, typename Builder >
+void buildVectorOnlyBufer(
+    zeq::Event& event,
+    void (Builder::*adder)( flatbuffers::Offset< flatbuffers::Vector< T >>),
+    const std::vector< T >& vector)
+{
+    flatbuffers::FlatBufferBuilder& fbb = event.getImpl()->fbb;
+    Builder builder( fbb );
+    (builder.*adder)( fbb.CreateVector( vector.data(), vector.size() ));
+    fbb.Finish( builder.Finish( ));
+}
+
+#define BUILD_VECTOR_ONLY_BUFFER( event, type, attribute, vector ) \
+    buildVectorOnlyBufer( event, &type##Builder::add_##attribute, vector);
+
+template< typename T, typename U >
+std::vector< T > deserializeVector(
+    const U* data,
+    const flatbuffers::Vector< T > *(U::*getter)( ) const )
+{
+    const flatbuffers::Vector< T > *in = ( data->*getter )();
+    std::vector< T > out( in->Length( ));
+    for( size_t i = 0; i < in->Length(); ++i )
+        out[i] = in->Get( i );
+    return out;
+}
+
+template< typename T, typename U >
+std::vector< T > deserializeVector(
+    const zeq::Event& event,
+    const flatbuffers::Vector< T > *(U::*getter)( ) const )
+{
+    const U* data = flatbuffers::GetRoot< U >( event.getData( ));
+    return deserializeVector( data, getter );
+}
+
+
 zeq::Event serializeCamera( const std::vector< float >& matrix )
 {
     if( matrix.size() != 16 )
         return zeq::Event( vocabulary::EVENT_INVALID );
 
     zeq::Event event( vocabulary::EVENT_CAMERA );
-
-    flatbuffers::FlatBufferBuilder& fbb = event.getImpl()->fbb;
-    CameraBuilder builder( fbb );
-    builder.add_matrix( fbb.CreateVector( matrix.data(), 16 ));
-    fbb.Finish( builder.Finish( ));
+    BUILD_VECTOR_ONLY_BUFFER( event, Camera, matrix, matrix );
     return event;
 }
 
-std::vector< float > deserializeCamera( const zeq::Event& camera )
+std::vector< float > deserializeCamera( const zeq::Event& event )
 {
-    auto data = GetCamera( camera.getData( ));
+    auto data = flatbuffers::GetRoot< Camera >( event.getData( ));
     LBASSERT( data->matrix()->Length() == 16 );
-
-    std::vector< float > returnMatrix( data->matrix()->Length( ));
-    for( size_t i = 0; i < data->matrix()->Length(); ++i )
-        returnMatrix[i] = data->matrix()->Get(i);
-    return returnMatrix;
+    return deserializeVector(data, &Camera::matrix);
 }
 
 
-zeq::Event serializeSelection( const std::vector< unsigned int >& selection )
+zeq::Event serializeIDSelection( const std::vector< unsigned int >& ids )
 {
-    zeq::Event event( vocabulary::EVENT_SELECTION );
-
-    flatbuffers::FlatBufferBuilder& fbb = event.getImpl()->fbb;
-    SelectionBuilder builder( fbb );
-    builder.add_ids( fbb.CreateVector( selection.data(), selection.size() ));
-    fbb.Finish( builder.Finish( ));
+    zeq::Event event( vocabulary::EVENT_ID_SELECTION );
+    BUILD_VECTOR_ONLY_BUFFER( event, IDSelection, ids, ids );
     return event;
 }
 
-std::vector< unsigned int > deserializeSelection( const zeq::Event& selection )
+std::vector< unsigned int > deserializeIDSelection( const zeq::Event& event )
 {
-    auto data = GetSelection( selection.getData( ));
-
-    std::vector< unsigned int > returnSelection( data->ids()->Length( ));
-    for( size_t i = 0; i < data->ids()->Length(); ++i )
-        returnSelection[i] = data->ids()->Get(i);
-    return returnSelection;
+    return deserializeVector(event, &IDSelection::ids);
 }
 
+zeq::Event serializeToggleIDSelection( const std::vector< unsigned int >& ids )
+{
+    zeq::Event event( vocabulary::EVENT_TOGGLE_ID_SELECTION );
+    BUILD_VECTOR_ONLY_BUFFER( event, ToggleIDSelection, ids, ids );
+    return event;
+}
+
+std::vector< unsigned int > deserializeToggleIDSelection(
+    const zeq::Event& event )
+{
+    return deserializeVector(event, &ToggleIDSelection::ids);
+}
 
 }
 }

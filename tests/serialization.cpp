@@ -21,9 +21,9 @@ BOOST_AUTO_TEST_CASE(test_serialization)
 
     unsigned int ids[] = {16,2,77,29};
     const std::vector< unsigned int > selection( ids, ids + sizeof(ids) / sizeof(unsigned int) );
-    const zeq::Event& selection_event = zeq::vocabulary::serializeSelection( selection );
+    const zeq::Event& selection_event = zeq::vocabulary::serializeIDSelection( selection );
     const std::vector< unsigned int >& deserialized_selection =
-            zeq::vocabulary::deserializeSelection( selection_event );
+            zeq::vocabulary::deserializeIDSelection( selection_event );
     BOOST_CHECK_EQUAL_COLLECTIONS( selection.begin(), selection.end(),
                                    deserialized_selection.begin(), deserialized_selection.end( ));
 
