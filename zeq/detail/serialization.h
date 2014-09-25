@@ -84,17 +84,17 @@ std::vector< unsigned int > deserializeIDSelection( const zeq::Event& event )
     return deserializeVector(event, &IDSelection::ids);
 }
 
-zeq::Event serializeToggleIDSelection( const std::vector< unsigned int >& ids )
+zeq::Event serializeToggleIDsRequest( const std::vector< unsigned int >& ids )
 {
-    zeq::Event event( vocabulary::EVENT_TOGGLE_ID_SELECTION );
-    BUILD_VECTOR_ONLY_BUFFER( event, ToggleIDSelection, ids, ids );
+    zeq::Event event( vocabulary::EVENT_TOGGLE_IDS_REQUEST );
+    BUILD_VECTOR_ONLY_BUFFER( event, ToggleIDsRequest, ids, ids );
     return event;
 }
 
-std::vector< unsigned int > deserializeToggleIDSelection(
+std::vector< unsigned int > deserializeToggleIDsRequest(
     const zeq::Event& event )
 {
-    return deserializeVector(event, &ToggleIDSelection::ids);
+    return deserializeVector(event, &ToggleIDsRequest::ids);
 }
 
 }

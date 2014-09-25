@@ -20,12 +20,24 @@ BOOST_AUTO_TEST_CASE(test_serialization)
                                    deserialized.begin(), deserialized.end( ));
 
     unsigned int ids[] = {16,2,77,29};
-    const std::vector< unsigned int > selection( ids, ids + sizeof(ids) / sizeof(unsigned int) );
-    const zeq::Event& selection_event = zeq::vocabulary::serializeIDSelection( selection );
+    const std::vector< unsigned int > idList(
+        ids, ids + sizeof(ids) / sizeof(unsigned int) );
+
+    const zeq::Event& selection_event =
+        zeq::vocabulary::serializeIDSelection( idList );
     const std::vector< unsigned int >& deserialized_selection =
             zeq::vocabulary::deserializeIDSelection( selection_event );
-    BOOST_CHECK_EQUAL_COLLECTIONS( selection.begin(), selection.end(),
-                                   deserialized_selection.begin(), deserialized_selection.end( ));
+    BOOST_CHECK_EQUAL_COLLECTIONS( idList.begin(), idList.end(),
+                                   deserialized_selection.begin(),
+                                   deserialized_selection.end( ));
+
+    const zeq::Event& toggle_event =
+        zeq::vocabulary::serializeToggleIDsRequest( idList );
+    const std::vector< unsigned int >& deserialized_toggle =
+            zeq::vocabulary::deserializeToggleIDsRequest( toggle_event );
+    BOOST_CHECK_EQUAL_COLLECTIONS( idList.begin(), idList.end(),
+                                   deserialized_toggle.begin(),
+                                   deserialized_toggle.end( ));
 
 }
 

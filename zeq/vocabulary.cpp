@@ -32,15 +32,15 @@ std::vector< unsigned int > deserializeIDSelection( const Event& selection )
     return detail::deserializeIDSelection( selection );
 }
 
-Event serializeToggleIDSelection( const std::vector< unsigned int >& ids )
+Event serializeToggleIDsRequest( const std::vector< unsigned int >& ids )
 {
-    return detail::serializeToggleIDSelection( ids );
+    return detail::serializeToggleIDsRequest( ids );
 }
 
-std::vector< unsigned int > deserializeToggleIDSelection(
+std::vector< unsigned int > deserializeToggleIDsRequest(
     const Event& selection )
 {
-    return detail::deserializeToggleIDSelection( selection );
+    return detail::deserializeToggleIDsRequest( selection );
 }
 
 

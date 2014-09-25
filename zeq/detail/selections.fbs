@@ -6,7 +6,7 @@ table IDSelection
   ids:[uint];
 }
 
-table ToggleIDSelection
+table ToggleIDsRequest
 {
   ids:[uint];
 }
