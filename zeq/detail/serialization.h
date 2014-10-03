@@ -18,7 +18,7 @@ namespace detail
 {
 
 template< typename T, typename Builder >
-void buildVectorOnlyBufer(
+void buildVectorOnlyBuffer(
     zeq::Event& event,
     void (Builder::*adder)( flatbuffers::Offset< flatbuffers::Vector< T >>),
     const std::vector< T >& vector)
@@ -30,7 +30,7 @@ void buildVectorOnlyBufer(
 }
 
 #define BUILD_VECTOR_ONLY_BUFFER( event, type, attribute, vector ) \
-    buildVectorOnlyBufer( event, &type##Builder::add_##attribute, vector);
+    buildVectorOnlyBuffer( event, &type##Builder::add_##attribute, vector);
 
 template< typename T, typename U >
 std::vector< T > deserializeVector(
