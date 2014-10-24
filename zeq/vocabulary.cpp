@@ -22,14 +22,25 @@ std::vector< float > deserializeCamera( const Event& camera )
 }
 
 
-Event serializeSelection( const std::vector< unsigned int >& selection )
+Event serializeIDSelection( const std::vector< unsigned int >& ids )
 {
-    return detail::serializeSelection( selection );
+    return detail::serializeIDSelection( ids );
 }
 
-std::vector< unsigned int > deserializeSelection( const Event& selection )
+std::vector< unsigned int > deserializeIDSelection( const Event& selection )
 {
-    return detail::deserializeSelection( selection );
+    return detail::deserializeIDSelection( selection );
+}
+
+Event serializeToggleIDsRequest( const std::vector< unsigned int >& ids )
+{
+    return detail::serializeToggleIDsRequest( ids );
+}
+
+std::vector< unsigned int > deserializeToggleIDsRequest(
+    const Event& selection )
+{
+    return detail::deserializeToggleIDsRequest( selection );
 }
 
 
