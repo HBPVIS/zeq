@@ -29,6 +29,11 @@ uint64_t Event::getType() const
     return _impl->type;
 }
 
+flatbuffers::FlatBufferBuilder &Event::getFlatBuffer()
+{
+    return _impl->fbb;
+}
+
 size_t Event::getSize() const
 {
     return _impl->getSize();

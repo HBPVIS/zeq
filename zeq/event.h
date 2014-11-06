@@ -9,6 +9,11 @@
 #include <zeq/api.h>
 #include <zeq/types.h>
 
+namespace flatbuffers
+{
+    class FlatBufferBuilder;
+}
+
 namespace zeq
 {
 namespace detail { class Subscriber; class Event; }
@@ -35,6 +40,9 @@ public:
 
     /** @return the type of this event */
     ZEQ_API uint64_t getType() const;
+
+    /** @return the flat buffer builder */
+    ZEQ_API flatbuffers::FlatBufferBuilder& getFlatBuffer();
 
     /** @internal @return the size in bytes of the serialized data */
     ZEQ_API size_t getSize() const;
