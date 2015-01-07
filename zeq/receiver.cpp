@@ -49,7 +49,7 @@ public:
 
         // Never fully block. Give receivers a chance to update, e.g., to check
         // for new connections from zeroconf (#20)
-        const uint32_t block = std::min( 1000u, timeout / 10 );
+        const uint32_t block = ( std::min )( 1000u, timeout / 10 );
 
         lunchbox::Clock timer;
         while( true )
@@ -60,7 +60,7 @@ public:
             const uint64_t elapsed = timer.getTime64();
             long wait = 0;
             if( elapsed < timeout )
-                wait = std::min( timeout - uint32_t( elapsed ), block );
+                wait = ( std::min )( timeout - uint32_t( elapsed ), block );
 
             if( _receive( wait ))
                 return true;
