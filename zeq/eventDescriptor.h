@@ -32,10 +32,7 @@ enum EventDirection
  * It contains the REST api name, the 128bit zeq event id and the schema
  * needed for automatic JSON serialization/deserialization.
  */
-struct EventDescriptor
-#ifdef SUPPORT_FOR_CPP11
-    : public boost::noncopyable
-#endif
+struct EventDescriptor : public boost::noncopyable
 {
     /**
      * Create an EventDescriptor.
@@ -48,16 +45,23 @@ struct EventDescriptor
                              const std::string& schema,
                              const EventDirection eventDirection);
 
-    /** Move ctor @internal */
-#ifdef SUPPORT_FOR_CPP11
-    ZEQ_API EventDescriptor( EventDescriptor&& rhs );
-#else
+#ifdef BOOST_NO_CXX11_RVALUE_REFERENCES
+    /** Copy ctor @internal */
     ZEQ_API EventDescriptor( const EventDescriptor& rhs )
+        : _impl(0)
     {
-        _impl = rhs._impl;
-        const_cast<EventDescriptor&>(rhs)._impl = 0;
+        copy(rhs);
     }
 
+    /** Assignment operator @internal */
+    ZEQ_API EventDescriptor& operator=( const EventDescriptor& rhs )
+    {
+        copy( rhs );
+        return *this;
+    }
+#else
+    /** Move ctor @internal */
+    ZEQ_API EventDescriptor( EventDescriptor&& rhs );
 #endif
 
     ZEQ_API ~EventDescriptor();
@@ -74,18 +78,11 @@ struct EventDescriptor
     /** @return the zeq event's direction (Subscribed, Pulished or both)*/
     ZEQ_API EventDirection getEventDirection() const;
 
-#ifndef SUPPORT_FOR_CPP11
-    EventDescriptor& operator=( const EventDescriptor& rhs )
-    {
-        _impl = rhs._impl;
-        const_cast<EventDescriptor&>(rhs)._impl = 0;
-        return *this;
-    }
-#endif
-
 private:
 
-#ifdef SUPPORT_FOR_CPP11
+    void copy( const EventDescriptor& rhs );
+
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
     EventDescriptor& operator=( EventDescriptor&& rhs );
 #endif
     detail::EventDescriptor* _impl;

@@ -5,7 +5,6 @@
 
 #include "eventDescriptor.h"
 #include "detail/eventDescriptor.h"
-#include "lunchbox/debug.h"
 
 namespace zeq
 {
@@ -15,9 +14,10 @@ EventDescriptor::EventDescriptor( const std::string& restName,
                                   const std::string& schema,
                                   const EventDirection eventDirection )
     : _impl( new detail::EventDescriptor( restName, eventType, schema, eventDirection ))
-{}
+{
+}
 
-#ifdef SUPPORT_FOR_CPP11
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
 EventDescriptor::EventDescriptor( EventDescriptor&& rhs )
     : _impl( rhs._impl )
 {
@@ -32,26 +32,32 @@ EventDescriptor::~EventDescriptor()
 
 const std::string& EventDescriptor::getRestName() const
 {
-    LBASSERT(_impl);
     return _impl->restName;
 }
 
 const uint128_t& EventDescriptor::getEventType() const
 {
-    LBASSERT(_impl);
     return _impl->eventType;
 }
 
 const std::string& EventDescriptor::getSchema() const
 {
-    LBASSERT(_impl);
     return _impl->schema;
 }
 
 EventDirection EventDescriptor::getEventDirection() const
 {
-    LBASSERT(_impl);
     return _impl->eventDirection;
+}
+
+void EventDescriptor::copy( const EventDescriptor& rhs )
+{
+    if( _impl == rhs._impl )
+        return;
+
+    delete _impl;
+    _impl = new detail::EventDescriptor(
+        rhs.getRestName(), rhs.getEventType(), rhs.getSchema(), rhs.getEventDirection() );
 }
 
 }
