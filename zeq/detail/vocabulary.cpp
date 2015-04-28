@@ -43,13 +43,14 @@ Event serializeVocabulary( const EventDescriptors& vocabulary )
     std::vector< flatbuffers::Offset<flatbuffers::String> > schemas;
     std::vector< uint8_t > eventDirections;
 
-    BOOST_FOREACH( const EventDescriptor& eventDescriptor, vocabulary )
+  for( EventDescriptors::const_iterator eventDescriptor=vocabulary.begin();
+      eventDescriptor!=vocabulary.end(); ++eventDescriptor)
     {
-        restNames.push_back( fbb.CreateString( eventDescriptor.getRestName( )));
-        eventTypeHighs.push_back( eventDescriptor.getEventType().high( ));
-        eventTypeLows.push_back( eventDescriptor.getEventType().low( ));
-        schemas.push_back( fbb.CreateString( eventDescriptor.getSchema( )));
-        eventDirections.push_back( uint8_t( eventDescriptor.getEventDirection()));
+        restNames.push_back( fbb.CreateString( eventDescriptor->getRestName( )));
+        eventTypeHighs.push_back( eventDescriptor->getEventType().high( ));
+        eventTypeLows.push_back( eventDescriptor->getEventType().low( ));
+        schemas.push_back( fbb.CreateString( eventDescriptor->getSchema( )));
+        eventDirections.push_back( uint8_t( eventDescriptor->getEventDirection()));
     }
 
     const auto& restNamesForZeq = fbb.CreateVector( &restNames[0],
