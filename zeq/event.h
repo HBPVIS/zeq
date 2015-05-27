@@ -32,8 +32,24 @@ public:
      */
     ZEQ_API explicit Event( const uint128_t& type );
 
+#ifdef BOOST_NO_CXX11_RVALUE_REFERENCES
+    /** Copy ctor @internal */
+    ZEQ_API Event( const Event& rhs )
+        : _impl(0)
+    {
+        copy( rhs );
+    }
+
+    /** Assignment operator @internal */
+    ZEQ_API Event& operator=( const Event& rhs )
+    {
+        copy( rhs );
+        return *this;
+    }
+#else
     /** Move ctor @internal */
     ZEQ_API Event( Event&& rhs );
+#endif
 
     ZEQ_API ~Event();
 
@@ -58,8 +74,11 @@ private:
 
     friend class detail::Subscriber;
     void setData( const void* data, const size_t size );
+    void copy( const Event& rhs );
 
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
     Event& operator=( Event&& rhs );
+#endif
 
     detail::Event* _impl;
 };

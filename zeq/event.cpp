@@ -13,15 +13,26 @@ Event::Event( const uint128_t& type )
     : _impl( new detail::Event( type ))
 {}
 
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
 Event::Event( Event&& rhs )
     : _impl( rhs._impl )
 {
     rhs._impl = 0;
 }
+#endif
 
 Event::~Event()
 {
     delete _impl;
+}
+
+void Event::copy( const Event& rhs )
+{
+    if( _impl == rhs._impl )
+        return;
+
+    delete _impl;
+    _impl = new detail::Event( rhs.getType() );
 }
 
 const uint128_t& Event::getType() const

@@ -45,8 +45,24 @@ struct EventDescriptor
                              const std::string& schema,
                              const EventDirection eventDirection );
 
+#ifdef BOOST_NO_CXX11_RVALUE_REFERENCES
+    /** Copy ctor @internal */
+    ZEQ_API EventDescriptor( const EventDescriptor& rhs )
+        : _impl(0)
+    {
+        copy(rhs);
+    }
+
+    /** Assignment operator @internal */
+    ZEQ_API EventDescriptor& operator=( const EventDescriptor& rhs )
+    {
+        copy( rhs );
+        return *this;
+    }
+#else
     /** Move ctor @internal */
     ZEQ_API EventDescriptor( EventDescriptor&& rhs );
+#endif
 
     ZEQ_API ~EventDescriptor();
 
@@ -61,12 +77,16 @@ struct EventDescriptor
 
     /** @return the zeq event's direction (Subscribed, Pulished or both)*/
     ZEQ_API EventDirection getEventDirection() const;
+
 private:
     EventDescriptor( const EventDescriptor& ) = delete;
     EventDescriptor& operator=( const EventDescriptor& ) = delete;
 
-    EventDescriptor& operator=( EventDescriptor&& rhs );
+    void copy( const EventDescriptor& rhs );
 
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+    EventDescriptor& operator=( EventDescriptor&& rhs );
+#endif
     detail::EventDescriptor* _impl;
 };
 
