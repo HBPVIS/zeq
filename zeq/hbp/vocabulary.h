@@ -16,6 +16,7 @@
 #include <zeq/hbp/imageJPEG_zeq_generated.h>
 #include <zeq/hbp/lookupTable1D_zeq_generated.h>
 #include <zeq/hbp/selections_zeq_generated.h>
+#include <zeq/hbp/animation_zeq_generated.h>
 
 namespace zeq
 {
@@ -174,6 +175,25 @@ ZEQ_API Event serializeImageJPEG( const data::ImageJPEG& image );
  */
 ZEQ_API data::ImageJPEG deserializeImageJPEG( const Event& event );
 
+/**
+ * Serialize the given playing state and frame number into an Event of type
+ * EVENT_ANIMATION.
+ * @param play playing state of the animation (true = play, false = pause).
+ * @param frame frame number.
+ * @return the serialized event.
+ */
+ZEQ_API zeq::Event serializeAnimation( const bool play,
+                                       const uint32_t frame );
+
+/**
+ * Deserialize the given EVENT_ANIMATION event.
+ * @param event the zeq EVENT_IMAGEJPEG.
+ * @param play returns the playing state of the animation (true = play,
+ *        false = pause).
+ * @param frame returns the frame number.
+ */
+ZEQ_API void deserializeAnimation( const Event& event, bool& play,
+                                   uint32_t& frame );
 
 }
 }

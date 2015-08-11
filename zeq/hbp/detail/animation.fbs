@@ -1,0 +1,14 @@
+// Copyright (c) 2014, Human Brain Project
+//                     Cyrille Favreau <cyrille.favreau@epfl.ch>
+//
+namespace zeq.hbp;
+
+enum AmimationAction : ubyte { Pause, Play, Backwards }
+
+table Animation
+{
+  action: AmimationAction;
+  frame : uint; // frame number
+}
+
+root_type Animation;

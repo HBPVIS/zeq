@@ -8,6 +8,7 @@ flatbuffers_generate_c_headers(HBP_FBS
   detail/imageJPEG.fbs
   detail/lookupTable1D.fbs
   detail/selections.fbs
+  detail/animation.fbs
 )
 
 set(ZEQHBP_PUBLIC_HEADERS vocabulary.h ${HBP_FBS_ZEQ_OUTPUTS})

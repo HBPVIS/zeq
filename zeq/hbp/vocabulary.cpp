@@ -11,6 +11,7 @@
 #include <zeq/hbp/imageJPEG_generated.h>
 #include <zeq/hbp/selections_generated.h>
 #include <zeq/hbp/lookupTable1D_generated.h>
+#include <zeq/hbp/animation_generated.h>
 #include <zeq/event.h>
 #include <zeq/vocabulary.h>
 
@@ -152,6 +153,23 @@ std::vector< uint8_t > deserializeLookupTable1D( const Event& event )
     auto data = GetLookupTable1D( event.getData( ));
     assert( data->lut()->Length() == 1024 );
     return deserializeVector( data->lut( ));
+}
+
+zeq::Event serializeAnimation( const AmimationAction action,
+                               const uint32_t frame )
+{
+    zeq::Event event( EVENT_ANIMATION );
+    flatbuffers::FlatBufferBuilder& fbb = event.getFBB();
+    fbb.Finish( CreateAnimation( fbb, action, frame ) );
+    return event;
+}
+
+void deserializeAnimation( const Event& event, bool& action, uint32_t& frame )
+{
+    auto animationAction = GetAnimation( event.getData( ));
+    assert( animationAction );
+    action = animationAction->action();
+    frame = animationAction->frame();
 }
 
 }
