@@ -19,14 +19,22 @@ namespace
 const std::string jsonGet( "Not JSON, just want to see that the is data a-ok" );
 const std::string jsonPut( "See what my stepbrother jsonGet says" );
 
-const std::string error400( "HTTP/1.0 400 Bad Request\r\nContent-Length: 28\r\n\r\nHTTP/1.0"
-                            " 400 Bad Request\r\n\r\n" );
-const std::string error404( "HTTP/1.0 404 Not Found\r\nContent-Length: 26\r\n\r\nHTTP/1.0"
-                            " 404 Not Found\r\n\r\n" );
-const std::string error405( "HTTP/1.0 405 Method Not Allowed\r\nContent-Length: 35\r\n\r\nHTTP/1.0"
-                            " 405 Method Not Allowed\r\n\r\n" );
-const std::string error411( "HTTP/1.0 411 Length Required\r\nContent-Length: 32\r\n\r\nHTTP/1.0"
-                            " 411 Length Required\r\n\r\n" );
+const std::string cors_headers(
+    "Access-Control-Allow-Headers: Content-Type\r\n"
+    "Access-Control-Allow-Methods: GET,PUT,OPTIONS\r\n"
+    "Access-Control-Allow-Origin: *\r\n");
+const std::string error400(
+    "HTTP/1.0 400 Bad Request\r\n" + cors_headers +
+    "Content-Length: 28\r\n\r\nHTTP/1.0 400 Bad Request\r\n\r\n" );
+const std::string error404(
+    "HTTP/1.0 404 Not Found\r\n" + cors_headers +
+    "Content-Length: 26\r\n\r\nHTTP/1.0 404 Not Found\r\n\r\n" );
+const std::string error405(
+    "HTTP/1.0 405 Method Not Allowed\r\n" + cors_headers +
+    "Content-Length: 35\r\n\r\nHTTP/1.0 405 Method Not Allowed\r\n\r\n" );
+const std::string error411(
+    "HTTP/1.0 411 Length Required\r\n" + cors_headers +
+    "Content-Length: 32\r\n\r\nHTTP/1.0 411 Length Required\r\n\r\n" );
 
 class Foo : public servus::Serializable
 {
@@ -173,7 +181,6 @@ BOOST_AUTO_TEST_CASE(construction_argv)
     std::unique_ptr< zeq::http::Server > server2 =
             zeq::http::Server::parse( argc, argv, shared );
 
-    BOOST_REQUIRE( server2 );
     BOOST_CHECK( !server2->getURI().getHost().empty( ));
     BOOST_CHECK_NE( server2->getURI().getPort(), 0 );
 }
@@ -233,7 +240,8 @@ BOOST_AUTO_TEST_CASE(get)
     BOOST_CHECK( !foo.getNotified( ));
 
     client.test( "GET /test/Foo HTTP/1.0\r\n\r\n",
-                 std::string( "HTTP/1.0 200 OK\r\nContent-Length: 48\r\n\r\n" )+
+                 std::string( "HTTP/1.0 200 OK\r\n" + cors_headers +
+                 "Content-Length: 48\r\n\r\n" )+
                  jsonGet, __LINE__ );
     BOOST_CHECK( foo.getNotified( ));
 
@@ -257,7 +265,8 @@ BOOST_AUTO_TEST_CASE(shared)
 
     client1.test( "GET /test/Foo HTTP/1.0\r\n\r\n", error404, __LINE__ );
     client2.test( "GET /test/Foo HTTP/1.0\r\n\r\n",
-                  std::string( "HTTP/1.0 200 OK\r\nContent-Length: 48\r\n\r\n" ) +
+                  std::string( "HTTP/1.0 200 OK\r\n" + cors_headers +
+                  "Content-Length: 48\r\n\r\n" ) +
                   jsonGet, __LINE__ );
     running = false;
     thread.join();
@@ -278,16 +287,23 @@ BOOST_AUTO_TEST_CASE(put)
     client.test( std::string( "PUT /test/Foo HTTP/1.0\r\n\r\n" ) + jsonPut,
                  error411, __LINE__ );
     client.test(
-        std::string( "PUT /test/Foo HTTP/1.0\r\nContent-Length: 3\r\n\r\nFoo" ),
-        error400, __LINE__ );
-    client.test( std::string( "PUT /test/Bar HTTP/1.0\r\nContent-Length: " ) +
+        std::string( "PUT /test/Foo HTTP/1.0\r\n" + cors_headers +
+                     "Content-Length: 3\r\n\r\nFoo" ),
+                     error400, __LINE__ );
+    client.test( std::string( "PUT /test/Bar HTTP/1.0\r\n" +
+                              cors_headers +
+                              "Content-Length: " ) +
                  std::to_string( jsonPut.length( )) + "\r\n\r\n" + jsonPut,
                  error404, __LINE__ );
     BOOST_CHECK( !foo.getNotified( ));
 
-    client.test( std::string( "PUT /test/Foo HTTP/1.0\r\nContent-Length: " ) +
+    client.test( std::string( "PUT /test/Foo HTTP/1.0\r\n" +
+                              cors_headers +
+                              "Content-Length: " ) +
                  std::to_string( jsonPut.length( )) + "\r\n\r\n" + jsonPut,
-                 std::string( "HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n" ),
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 0\r\n\r\n" ),
                  __LINE__);
     BOOST_CHECK( foo.getNotified( ));
 
@@ -305,7 +321,9 @@ BOOST_AUTO_TEST_CASE(post)
     std::thread thread( [ & ]() { while( running ) server.receive( 100 ); });
 
     Client client( server.getURI( ));
-    client.test( std::string( "POST /test/Foo HTTP/1.0\r\nContent-Length: " ) +
+    client.test( std::string( "POST /test/Foo HTTP/1.0\r\n" +
+                              cors_headers +
+                              "Content-Length: " ) +
                  std::to_string( jsonPut.length( )) + "\r\n\r\n" + jsonPut,
                  error405, __LINE__ );
 
@@ -325,7 +343,9 @@ BOOST_AUTO_TEST_CASE(largeGet)
     Client client( server.getURI( ));
     client.test( "GET" + std::string( 4096, ' ' ) +
                  "/test/Foo HTTP/1.0\r\n\r\n",
-                 std::string( "HTTP/1.0 200 OK\r\nContent-Length: 48\r\n\r\n" )+
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 48\r\n\r\n" )+
                  jsonGet, __LINE__ );
 
     running = false;
@@ -355,12 +375,18 @@ BOOST_AUTO_TEST_CASE(urlcasesensitivity)
     std::thread thread( [ & ]() { while( running ) server.receive( 100 ); });
 
     Client client( server.getURI( ));
-    client.test( "GET" + std::string( 4096, ' ' ) + "/TEST/FOO HTTP/1.0\r\n\r\n",
-                 std::string( "HTTP/1.0 200 OK\r\nContent-Length: 48\r\n\r\n" ) +
+    client.test( "GET" + std::string( 4096, ' ' ) +
+                 "/TEST/FOO HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 48\r\n\r\n" ) +
                  jsonGet, __LINE__ );
 
-    client.test( "GET" + std::string( 4096, ' ' ) + "/test/foo HTTP/1.0\r\n\r\n",
-                 std::string( "HTTP/1.0 200 OK\r\nContent-Length: 48\r\n\r\n" ) +
+    client.test( "GET" + std::string( 4096, ' ' ) +
+                 "/test/foo HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 48\r\n\r\n" ) +
                  jsonGet, __LINE__ );
 
     running = false;

@@ -25,6 +25,11 @@ std::string _toLower( std::string value )
     std::transform( value.begin(), value.end(), value.begin(), ::tolower );
     return value;
 }
+
+const std::string access_control_allow_origins = "*";
+const std::string access_control_allow_headers = "Content-Type";
+const std::string access_control_allow_methods = "GET,PUT,OPTIONS";
+
 }
 
 namespace zeq
@@ -154,7 +159,12 @@ public:
         }
         else
         {
-            response.set_status( 405 ); // Method Not Allowed
+            if( request.method() ==  httpxx::Method::options() )
+                // OPTIONS requests are accepted since access control is not
+                // currently implemented.
+                response.set_status( 200 );
+            else
+                response.set_status( 405 ); // Method Not Allowed
             body.clear(); // no response body
         }
 
@@ -163,6 +173,12 @@ public:
         if( response.status() >= 400 && response.status() < 500 )
             body = response.to_string();
         response.headers()[ "Content-Length" ] = std::to_string( body.length( ));
+        response.headers()[ "Access-Control-Allow-Origin" ] =
+            access_control_allow_origins;
+        response.headers()[ "Access-Control-Allow-Headers" ] =
+            access_control_allow_headers;
+        response.headers()[ "Access-Control-Allow-Methods" ] =
+            access_control_allow_methods;
         const std::string& rep = response.to_string();
         const int more = body.empty() ? 0 : ZMQ_SNDMORE;
         if( ::zmq_send( socket, id, idSize, ZMQ_SNDMORE ) != idSize ||
