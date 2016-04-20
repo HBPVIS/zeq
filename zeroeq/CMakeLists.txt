@@ -2,7 +2,6 @@
 
 flatbuffers_generate_c_headers(ZEROEQ_FBS
   detail/echo.fbs
-  detail/exit.fbs
   detail/heartbeat.fbs
   detail/request.fbs
   detail/vocabulary.fbs)
