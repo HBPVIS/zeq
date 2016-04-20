@@ -1,6 +1,0 @@
-namespace zeroeq.vocabulary;
-
-table Exit {
-}
-
-root_type Exit;
