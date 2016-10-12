@@ -20,14 +20,7 @@ ZeroEQ provides the following major features:
 * Asynchronous, reliable transport using ZMQ
 * Automatic publisher discovery using Zeroconf
 * Serialization of events using [ZeroBuf](https://github.com/HBPVIS/ZeroBuf)
-
-## List of RFCs
-
-* [Event-based communication](@ref eventbased)
-* [HTTP GET and PUT server](@ref httpserver)
-* [Session filtering and management port](@ref Sessions)
-* [Landing page for HTTP Server](@ref landingpage)
-* [Publishing the REST API exposed by the HTTP Server](@ref restapi)
+* [List of RFCs](@ref rfcs)
 
 # Building
 

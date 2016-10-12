@@ -300,9 +300,9 @@ public:
             std::this_thread::sleep_for( std::chrono::milliseconds( 100 ));
             ++i;
 
-            if( i > 200 )
+            if( i > 300 )
                 ZEROEQTHROW( std::runtime_error(
-                                 "Publisher giving up after 20s" ));
+                                 "Publisher giving up after 30s" ));
         }
     }
 

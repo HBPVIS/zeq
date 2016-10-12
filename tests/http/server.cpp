@@ -1,6 +1,7 @@
 
 /* Copyright (c) 2016, Human Brain Project
  *                     Stefan.Eilemann@epfl.ch
+ *                     Daniel.Nachbaur@epfl.ch
  */
 
 #define BOOST_TEST_MODULE http_server
@@ -43,6 +44,11 @@ public:
 
     void setNotified() { _notified = true; }
     bool getNotified() const { return _notified; }
+
+    std::string getSchema() const final
+    {
+        return "{\n  '_notified' : 'bool'\n}";
+    }
 
 private:
     std::string getTypeName() const final { return "test::Foo"; }
@@ -213,32 +219,54 @@ BOOST_AUTO_TEST_CASE(registration)
 {
     zeroeq::http::Server server;
     Foo foo;
-    BOOST_CHECK( server.register_( foo ));
-    BOOST_CHECK( !server.register_( foo ));
-    BOOST_CHECK( server.unregister( foo ));
-    BOOST_CHECK( !server.unregister( foo ));
-
-    BOOST_CHECK( server.register_( "foo", [](){ return "bla"; } ));
-    BOOST_CHECK( !server.register_( "foo", [](){ return "bla"; } ));
-    BOOST_CHECK( server.unregister( "foo" ));
-    BOOST_CHECK( !server.unregister( "foo" ));
-
-    BOOST_CHECK( server.subscribe( foo ));
-    BOOST_CHECK( !server.subscribe( foo ));
-    BOOST_CHECK( server.unsubscribe( foo ));
-    BOOST_CHECK( !server.unsubscribe( foo ));
-
-    BOOST_CHECK( server.subscribe( "foo", zeroeq::PUTPayloadFunc
-                                  ([]( const std::string& ) { return true; })));
-    BOOST_CHECK( !server.subscribe( "foo", zeroeq::PUTPayloadFunc
-                                  ([]( const std::string& ) { return true; })));
-    BOOST_CHECK( server.unsubscribe( "foo" ));
-    BOOST_CHECK( !server.unsubscribe( "foo" ));
-
-    BOOST_CHECK( server.add( foo ));
-    BOOST_CHECK( !server.add( foo ));
+    BOOST_CHECK( server.handleGET( foo ));
+    BOOST_CHECK( !server.handleGET( foo ));
     BOOST_CHECK( server.remove( foo ));
     BOOST_CHECK( !server.remove( foo ));
+
+    BOOST_CHECK( server.handleGET( "foo", [](){ return "bla"; } ));
+    BOOST_CHECK( !server.handleGET( "foo", [](){ return "bla"; } ));
+    BOOST_CHECK( server.remove( "foo" ));
+    BOOST_CHECK( !server.remove( "foo" ));
+
+    BOOST_CHECK( server.handleGET( "bar", "schema", [](){ return "bla"; } ));
+    BOOST_CHECK( !server.handleGET( "bar", "schema", [](){ return "bla"; } ));
+    BOOST_CHECK( server.remove( "bar" ));
+    BOOST_CHECK( !server.remove( "bar" ));
+
+    BOOST_CHECK( server.handlePUT( foo ));
+    BOOST_CHECK( !server.handlePUT( foo ));
+    BOOST_CHECK( server.remove( foo ));
+    BOOST_CHECK( !server.remove( foo ));
+
+    BOOST_CHECK( server.handlePUT( "foo", zeroeq::PUTPayloadFunc
+                                  ([]( const std::string& ) { return true; })));
+    BOOST_CHECK( !server.handlePUT( "foo", zeroeq::PUTPayloadFunc
+                                  ([]( const std::string& ) { return true; })));
+    BOOST_CHECK( server.remove( "foo" ));
+    BOOST_CHECK( !server.remove( "foo" ));
+
+    BOOST_CHECK( server.handlePUT( "bar", "schema", zeroeq::PUTPayloadFunc
+                                  ([]( const std::string& ) { return true; })));
+    BOOST_CHECK( !server.handlePUT( "bar", "schema", zeroeq::PUTPayloadFunc
+                                  ([]( const std::string& ) { return true; })));
+    BOOST_CHECK_EQUAL( server.getSchema( "bar" ), "schema" );
+    BOOST_CHECK( server.handleGET( "bar", "schema", [](){ return "bla"; } ));
+    BOOST_CHECK( !server.handleGET( "bar", "schema", [](){ return "bla"; } ));
+    BOOST_CHECK_EQUAL( server.getSchema( "bar" ), "schema" );
+    BOOST_CHECK( server.remove( "bar" ));
+    BOOST_CHECK( !server.remove( "bar" ));
+    BOOST_CHECK_EQUAL( server.getSchema( "bar" ), "" );
+
+    BOOST_CHECK( server.handle( foo ));
+    BOOST_CHECK( !server.handle( foo ));
+    BOOST_CHECK( server.remove( foo ));
+    BOOST_CHECK( !server.remove( foo ));
+
+    BOOST_CHECK( server.handle( foo ));
+    BOOST_CHECK_EQUAL( server.getSchema( foo ), foo.getSchema( ));
+    BOOST_CHECK( server.remove( foo ));
+    BOOST_CHECK_EQUAL( server.getSchema( foo ), std::string( ));
 }
 
 BOOST_AUTO_TEST_CASE(get_serializable)
@@ -248,7 +276,7 @@ BOOST_AUTO_TEST_CASE(get_serializable)
     Foo foo;
 
     foo.registerSerializeCallback( [&]{ foo.setNotified(); });
-    server.register_( foo );
+    server.handleGET( foo );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -273,7 +301,7 @@ BOOST_AUTO_TEST_CASE(get_event)
     zeroeq::http::Server server;
 
     bool requested = false;
-    server.register_( "test::Foo", [&](){ requested = true; return jsonGet; } );
+    server.handleGET( "test::Foo", [&](){ requested = true; return jsonGet; } );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -299,7 +327,7 @@ BOOST_AUTO_TEST_CASE(shared)
     zeroeq::http::Server server1( subscriber );
     zeroeq::http::Server server2( server1 );
     Foo foo;
-    server2.register_( foo );
+    server2.handleGET( foo );
 
     std::thread thread( [&]() { while( running ) subscriber.receive( 100 );});
 
@@ -322,7 +350,7 @@ BOOST_AUTO_TEST_CASE(put_serializable)
     Foo foo;
 
     foo.registerDeserializedCallback( [&]{ foo.setNotified(); });
-    server.subscribe( foo );
+    server.handlePUT( foo );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -360,9 +388,9 @@ BOOST_AUTO_TEST_CASE(put_event)
     zeroeq::http::Server server;
 
     bool receivedEmpty = false;
-    server.subscribe( "empty", zeroeq::PUTFunc 
+    server.handlePUT( "empty", zeroeq::PUTFunc
                                ([&]() { receivedEmpty = true; return true; } ));
-    server.subscribe( "foo", zeroeq::PUTPayloadFunc 
+    server.handlePUT( "foo", zeroeq::PUTPayloadFunc
                              ([&]( const std::string& received )
                              { return jsonPut == received; } ));
 
@@ -409,7 +437,7 @@ BOOST_AUTO_TEST_CASE(post)
     bool running = true;
     zeroeq::http::Server server;
     Foo foo;
-    server.register_( foo );
+    server.handleGET( foo );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -429,7 +457,7 @@ BOOST_AUTO_TEST_CASE(largeGet)
     bool running = true;
     zeroeq::http::Server server;
     Foo foo;
-    server.register_( foo );
+    server.handleGET( foo );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -450,7 +478,7 @@ BOOST_AUTO_TEST_CASE(issue157)
     bool running = true;
     zeroeq::http::Server server;
     Foo foo;
-    server.register_( foo );
+    server.handleGET( foo );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -483,7 +511,7 @@ BOOST_AUTO_TEST_CASE(urlcasesensitivity)
     bool running = true;
     zeroeq::http::Server server;
     Foo foo;
-    server.register_( foo );
+    server.handleGET( foo );
 
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
@@ -501,6 +529,189 @@ BOOST_AUTO_TEST_CASE(urlcasesensitivity)
                               cors_headers +
                               "Content-Length: 48\r\n\r\n" ) +
                  jsonGet, __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(empty_registry)
+{
+    zeroeq::http::Server server;
+    bool running = true;
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /registry HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 3\r\n\r\n" ) + "{}\n", __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(filled_registry)
+{
+    zeroeq::http::Server server;
+    Foo foo;
+    server.handle( foo );
+    server.handlePUT( "bla/bar", zeroeq::PUTFunc( [] { return true; } ));
+
+    bool running = true;
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /registry HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 63\r\n\r\n" ) +
+                              "{\n   \"bla/bar\" : [ \"PUT\" ],\n" +
+                              "   \"test/foo\" : [ \"GET\", \"PUT\" ]\n}\n",
+                 __LINE__ );
+    client.test( "GET /bla/bar/registry HTTP/1.0\r\n\r\n",
+                 error404, __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(object_schema)
+{
+    zeroeq::http::Server server;
+    Foo foo;
+    server.handleGET( foo );
+
+    bool running = true;
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /test/foo/schema HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 26\r\n\r\n" ) +
+                              "{\n  '_notified' : 'bool'\n}",
+                 __LINE__ );
+
+    client.test( "GET /test/foo/schema/schema HTTP/1.0\r\n\r\n",
+                 error404, __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(event_schema)
+{
+    zeroeq::http::Server server;
+    const std::string schema = "{ \"value\" : \"boolean\" }";
+    server.handleGET( "bla/bar", schema,
+        zeroeq::GETFunc( [] { return std::string( "{ \"value\" : true }"); } ));
+    server.handlePUT( "bla/foo", schema,
+                      zeroeq::PUTFunc( [] { return true; } ));
+
+    bool running = true;
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /bla/bar/schema HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 23\r\n\r\n" ) +
+                              schema,
+                 __LINE__ );
+    client.test( "GET /bla/foo/schema HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 23\r\n\r\n" ) +
+                              schema,
+                 __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(event_no_schema)
+{
+    zeroeq::http::Server server;
+    server.handleGET( "bla/bar",
+        zeroeq::GETFunc( [] { return std::string( "{ \"value\" : true }"); } ));
+
+    bool running = true;
+    std::thread thread( [&] { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /bla/bar/schema HTTP/1.0\r\n\r\n", error404, __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(event_wrong_schema)
+{
+    zeroeq::http::Server server;
+    BOOST_CHECK( server.handlePUT( "bla/foo", "schema",
+                                   zeroeq::PUTFunc( [] { return true; } )));
+    BOOST_CHECK_THROW( server.handleGET( "bla/foo", "bad",
+                               zeroeq::GETFunc( [] { return std::string(); } )),
+                       std::runtime_error );
+
+    BOOST_CHECK( server.handleGET( "bar", "schema",
+                              zeroeq::GETFunc( [] { return std::string(); } )));
+    BOOST_CHECK_THROW( server.handlePUT( "bar", "bad",
+                                zeroeq::PUTFunc( [] { return true; } )),
+                       std::runtime_error );
+}
+
+BOOST_AUTO_TEST_CASE(event_registry_name)
+{
+    zeroeq::http::Server server;
+    BOOST_CHECK_THROW( server.handleGET( "registry",
+                               zeroeq::GETFunc( [] { return std::string(); } )),
+                       std::runtime_error );
+    BOOST_CHECK_THROW( server.handlePUT( "registry",
+                                zeroeq::PUTFunc( [] { return true; } )),
+                       std::runtime_error );
+
+    BOOST_CHECK( server.handleGET( "foo/registry",
+                       zeroeq::GETFunc( [] { return std::string( "bar" ); } )));
+    BOOST_CHECK( server.handlePUT( "foo/registry",
+                                   zeroeq::PUTFunc( [] { return true; } )));
+
+    bool running = true;
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /foo/registry HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" + cors_headers +
+                 "Content-Length: 3\r\n\r\n" )+
+                 "bar", __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(event_schema_name)
+{
+    zeroeq::http::Server server;
+    BOOST_CHECK( server.handleGET( "schema", "dummy_schema",
+                       zeroeq::GETFunc( [] { return std::string( "bar" ); } )));
+    BOOST_CHECK( server.handlePUT( "schema", "dummy_schema",
+                                   zeroeq::PUTFunc( [] { return true; } )));
+
+
+    bool running = true;
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+    client.test( "GET /schema HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" + cors_headers +
+                 "Content-Length: 3\r\n\r\n" )+
+                 "bar", __LINE__ );
+    client.test( "GET /schema/schema HTTP/1.0\r\n\r\n",
+                 std::string( "HTTP/1.0 200 OK\r\n" +
+                              cors_headers +
+                              "Content-Length: 12\r\n\r\n" ) +
+                              "dummy_schema",
+                 __LINE__ );
 
     running = false;
     thread.join();

@@ -23,9 +23,11 @@ and invoked.
     provide the /schema endpoint and hence return an error 404.
 * C++
   * zeroeq::http::Server
-    * New: `bool subscribe( const std::string& event, const std::string& schema,
+    * New: `bool handlePUT( const std::string& event, const std::string& schema,
                             const PUTFunc& func );`
-    * New: `bool register_( const std::string& event, const std::string& schema,
+    * New: `bool handlePUT( const std::string& event, const std::string& schema,
+                            const PUTPayloadFunc& func );`
+    * New: `bool handleGET( const std::string& event, const std::string& schema,
                             const GETFunc& func );`
   * servus::Serializable
     * New: `virtual std::string getSchema() const { return std::string(); }`

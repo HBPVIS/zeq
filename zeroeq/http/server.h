@@ -48,8 +48,8 @@ public:
     ZEROEQ_API Server( const URI& uri, Receiver& shared );
     ZEROEQ_API explicit Server( const URI& uri );
     ZEROEQ_API explicit Server( Receiver& shared );
-    ZEROEQ_API explicit Server();
-    ZEROEQ_API explicit Server( Server& shared )
+    ZEROEQ_API Server();
+    explicit Server( Server& shared )
         : Server( static_cast< Receiver& >( shared )) {}
     ZEROEQ_API virtual ~Server();
 
@@ -91,13 +91,15 @@ public:
 
     /** @name Object registration for PUT and GET requests */
     //@{
-    /** Subscribe and register the given object. */
-    bool add( servus::Serializable& object )
-        { return subscribe( object ) && register_( object );}
+    /** Handle PUT and GET for the given object. */
+    bool handle( servus::Serializable& object )
+        { return handlePUT( object ) && handleGET( object );}
 
-    /** Unsubscribe and unregister the given object. */
-    bool remove( const servus::Serializable& object )
-        { return unsubscribe( object ) && unregister( object );}
+    /** Remove PUT and GET handling for given object. */
+    ZEROEQ_API bool remove( const servus::Serializable& object );
+
+    /** Remove PUT and GET handling for given event. */
+    ZEROEQ_API bool remove( const std::string& event );
 
     /**
      * Subscribe a serializable object to receive updates from HTTP PUT
@@ -107,14 +109,15 @@ public:
      * using fromJSON(). To track updates on the object, the serializable's
      * updated function is called accordingly.
      *
-     * The subscribed object instance has to be valid until unsubscribe().
+     * The subscribed object instance has to be valid until removePUT().
      *
      * @param object the object to update on receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool subscribe( servus::Serializable& object );
+    ZEROEQ_API bool handlePUT( servus::Serializable& object );
 
     /**
+     *
      * Subscribe an event to receive HTTP PUT requests.
      *
      * Every receival of the event will call the registered callback function.
@@ -123,7 +126,16 @@ public:
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool subscribe( const std::string& event, const PUTFunc& func );
+    ZEROEQ_API bool handlePUT( const std::string& event, const PUTFunc& func );
+
+    /**
+     * @overload
+     * @param event the event name to receive PUT requests for during receive()
+     * @param schema describes data layout of event
+     * @param func the callback function for serving the PUT request
+     */
+    ZEROEQ_API bool handlePUT( const std::string& event,
+                               const std::string& schema, const PUTFunc& func );
 
     /**
      * Subscribe an event to receive HTTP PUT requests with payload.
@@ -134,15 +146,18 @@ public:
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool subscribe( const std::string& event,
+    ZEROEQ_API bool handlePUT( const std::string& event,
                                const PUTPayloadFunc& func );
 
-    /** Unsubscribe the given object to stop applying updates. */
-    ZEROEQ_API bool unsubscribe( const servus::Serializable& object );
-
-    /** Unsubscribe the given event to stop receiving PUT requests. */
-    ZEROEQ_API bool unsubscribe( const std::string& event );
-
+    /**
+     * @overload
+     * @param event the event name to receive PUT requests for during receive()
+     * @param schema describes data layout of event
+     * @param func the callback function for serving the PUT request
+     */
+    ZEROEQ_API bool handlePUT( const std::string& event,
+                               const std::string& schema,
+                               const PUTPayloadFunc& func );
     /**
      * Subscribe a serializable object to serve HTTP GET requests.
      *
@@ -150,12 +165,12 @@ public:
      * toJSON(). To track updates on the object, the serializable's received
      * function is called accordingly.
      *
-     * The subscribed object instance has to be valid until unregister().
+     * The subscribed object instance has to be valid until removeGET().
      *
      * @param object the object to serve during receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool register_( servus::Serializable& object );
+    ZEROEQ_API bool handleGET( servus::Serializable& object );
 
     /**
      * Subscribe an event to serve HTTP GET requests.
@@ -167,13 +182,25 @@ public:
      * @param func the callback function for serving the GET request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool register_( const std::string& event, const GETFunc& func );
+    ZEROEQ_API bool handleGET( const std::string& event, const GETFunc& func );
 
-    /** Unsubscribe the given object for GET requests. */
-    ZEROEQ_API bool unregister( const servus::Serializable& object );
+    /**
+     * @overload
+     * @param event the event name to serve during receive()
+     * @param schema describes data layout of event
+     * @param func the callback function for serving the GET request
+     */
+    ZEROEQ_API bool handleGET( const std::string& event,
+                               const std::string& schema, const GETFunc& func );
 
-    /** Unsubscribe the given event name for GET requests. */
-    ZEROEQ_API bool unregister( const std::string& event );
+    /**
+     * @return the registered schema for the given object, or empty if not
+     *         registered.
+     */
+    ZEROEQ_API std::string getSchema( const servus::Serializable& object) const;
+
+    /** @overload */
+    ZEROEQ_API std::string getSchema( const std::string& event ) const;
     //@}
 
 private:

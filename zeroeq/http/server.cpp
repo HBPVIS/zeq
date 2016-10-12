@@ -1,19 +1,25 @@
 
 /* Copyright (c) 2016, Human Brain Project
  *                     Stefan.Eilemann@epfl.ch
+ *                     Daniel.Nachbaur@epfl.ch
  */
 
-#include <zeroeq/http/server.h>
+#include "server.h"
 
 #include "../log.h"
 #include "../detail/broker.h"
 #include "../detail/sender.h"
 #include "../detail/socket.h"
+
+#include "jsoncpp/json/json.h"
+
 #include <servus/serializable.h>
+
 #include <httpxx/BufferedMessage.hpp>
 #include <httpxx/Error.hpp>
 #include <httpxx/Message.hpp>
 #include <httpxx/ResponseBuilder.hpp>
+
 #include <algorithm>
 
 namespace httpxx = ::http; // avoid confusion between httpxx and zeroeq::http
@@ -24,6 +30,36 @@ std::string _toLower( std::string value )
 {
     std::transform( value.begin(), value.end(), value.begin(), ::tolower );
     return value;
+}
+
+// http://stackoverflow.com/questions/5343190
+std::string _replaceAll( std::string subject, const std::string& search,
+                         const std::string& replace )
+{
+    size_t pos = 0;
+    while( (pos = subject.find( search, pos )) != std::string::npos )
+    {
+         subject.replace( pos, search.length(), replace );
+         pos += replace.length();
+    }
+    return subject;
+}
+
+// convert name to lowercase with '/' separators instead of '::'
+void _convertEventName( std::string& event )
+{
+    event = _toLower( _replaceAll( event, "::", "/" ));
+}
+
+const std::string REQUEST_REGISTRY = "registry";
+const std::string REQUEST_SCHEMA = "schema";
+
+bool _endsWithSchema( const std::string& uri )
+{
+    if( uri.length() < REQUEST_SCHEMA.length( ))
+        return false;
+    return uri.compare( uri.length() - REQUEST_SCHEMA.length(),
+                        std::string::npos, REQUEST_SCHEMA ) == 0;
 }
 
 /**
@@ -68,58 +104,88 @@ public:
         initURI();
     }
 
-    bool subscribe( servus::Serializable& serializable )
+    bool remove( const servus::Serializable& serializable )
+    {
+        return remove( serializable.getTypeName( ));
+    }
+
+    bool remove( std::string event )
+    {
+        _convertEventName( event );
+        _schemas.erase( event );
+        const bool foundPUT = _put.erase( event ) != 0;
+        const bool foundGET = _get.erase( event ) != 0;
+        return foundPUT || foundGET;
+    }
+
+    bool handlePUT( servus::Serializable& serializable )
     {
         const auto func = [&serializable]( const std::string& json )
             { return serializable.fromJSON( json ); };
-        return subscribe( serializable.getTypeName(), func );
+        return handlePUT( serializable.getTypeName(), serializable.getSchema(),
+                          func );
     }
 
-    bool subscribe( std::string event, const PUTPayloadFunc& func )
+    bool handlePUT( std::string event, const std::string& schema,
+                    const PUTPayloadFunc& func )
     {
-        event = _toLower( event );
-        if( _subscriptions.count( event ) != 0 )
+        _convertEventName( event );
+        if( event == REQUEST_REGISTRY )
+            ZEROEQTHROW( std::runtime_error(
+                             "'registry' not allowed as event name" ));;
+
+        if( _put.count( event ) != 0 )
             return false;
 
-        _subscriptions[ event ] = func;
+        _put[ event ] = func;
+        {
+            const std::string& exist = _returnSchema( event );
+            if( exist.empty( ))
+                _schemas[ event ] = schema;
+            else if( schema != exist )
+                ZEROEQTHROW( std::runtime_error(
+                             "Schema registered for event differs: " + event ));
+        }
         return true;
     }
 
-    bool unsubscribe( const servus::Serializable& serializable )
+    bool handleGET( servus::Serializable& serializable )
     {
-        return unsubscribe( serializable.getTypeName( ));
+        const auto func = [&serializable] { return serializable.toJSON(); };
+        return handleGET( serializable.getTypeName(), serializable.getSchema(),
+                          func );
     }
 
-    bool unsubscribe( const std::string& event )
+    bool handleGET( std::string event, const std::string& schema,
+                    const GETFunc& func )
     {
-        return _subscriptions.erase(
-            _toLower( event )) != 0;
-    }
 
-    bool register_( servus::Serializable& serializable )
-    {
-        const auto func = [&serializable]() { return serializable.toJSON(); };
-        return register_( serializable.getTypeName(), func );
-    }
+        _convertEventName( event );
+        if( event == REQUEST_REGISTRY )
+            ZEROEQTHROW( std::runtime_error(
+                             "'registry' not allowed as event name" ));
 
-    bool register_( std::string event, const GETFunc& func )
-    {
-        event = _toLower( event );
-        if( _registrations.count( event ) != 0 )
+        if( _get.count( event ) != 0 )
             return false;
 
-        _registrations[ event ] = func;
+        _get[ event ] = func;
+        if( !schema.empty( ))
+        {
+            const std::string& exist = _returnSchema( event );
+            if( exist.empty( ))
+                _schemas[ event ] = schema;
+            else if( schema != exist )
+                ZEROEQTHROW( std::runtime_error(
+                             "Schema registered for event differs: " + event ));
+
+        }
         return true;
     }
 
-    bool unregister( const servus::Serializable& serializable )
+    std::string getSchema( std::string event ) const
     {
-        return unregister( serializable.getTypeName( ));
-    }
-
-    bool unregister( const std::string& event )
-    {
-        return _registrations.erase( _toLower( event )) != 0;
+        _convertEventName( event );
+        return _returnSchema( event );
     }
 
     void addSockets( std::vector< detail::Socket >& entries )
@@ -200,11 +266,11 @@ public:
         httpxx::ResponseBuilder response;
         std::string body;
         if( request.method() == httpxx::Method::get( ))
-            body = _processGet( request, response );
+            body = _processGET( request, response );
         else if( request.method() == httpxx::Method::put( ))
         {
             if( request.has_header( "Content-Length" ))
-                _processPut( request, response );
+                _processPUT( request, response );
             else
                 response.set_status( 411 ); // Content-Length required
             body.clear(); // no response body
@@ -283,50 +349,71 @@ public:
     }
 
 protected:
+    // key stores event lower-case with '/' separators
     typedef std::map< std::string, PUTPayloadFunc > PUTFuncMap;
     typedef std::map< std::string, GETFunc > GETFuncMap;
-    PUTFuncMap _subscriptions;
-    GETFuncMap _registrations;
+    typedef std::map< std::string, std::string > SchemaMap;
+    PUTFuncMap _put;
+    GETFuncMap _get;
+    SchemaMap _schemas;
 
     std::string _getTypeName( const std::string& url )
     {
         if( url.empty( ))
             return url;
 
-        std::string name = url.substr( 1 );
-        while( true )
-        {
-            const size_t pos = name.find( '/' );
-            if( pos == std::string::npos )
-                return name;
-
-            name = name.substr( 0, pos ) + "::" + name.substr( pos + 1 );
-        }
+        return _toLower( url.substr( 1 ));
     }
 
-    std::string _processGet( const httpxx::BufferedRequest& request,
+    std::string _returnRegistry() const
+    {
+        Json::Value body( Json::objectValue );
+        for( const auto& i : _get )
+            body[i.first].append( "GET" );
+        for( const auto& i : _put )
+            body[i.first].append( "PUT" );
+
+        return body.toStyledString();
+    }
+
+    std::string _returnSchema( const std::string& type ) const
+    {
+        const auto& i = _schemas.find( type );
+        return i != _schemas.end() ? i->second : std::string();
+    }
+
+    std::string _processGET( const httpxx::BufferedRequest& request,
                              httpxx::ResponseBuilder& response )
     {
-        const std::string& type = _toLower( _getTypeName( request.url( )));
-        const auto& i = _registrations.find( type );
+        response.set_status( 200 ); // be optimistic
 
-        if( i == _registrations.end( ))
+        const std::string& type = _getTypeName( request.url( ));
+        const auto& i = _get.find( type );
+        if( i != _get.end( ))
+            return i->second();
+
+        if( type == REQUEST_REGISTRY )
+            return _returnRegistry();
+
+        if( _endsWithSchema( type ))
         {
-            response.set_status( 404 );
-            return std::string();
+            const auto& schema = _returnSchema( type.substr( 0,
+                                                     type.find_last_of( '/' )));
+            if( !schema.empty( ))
+                return schema;
         }
 
-        response.set_status( 200 );
-        return i->second();
+        response.set_status( 404 );
+        return std::string();
     }
 
-    void _processPut( const httpxx::BufferedRequest& request,
+    void _processPUT( const httpxx::BufferedRequest& request,
                       httpxx::ResponseBuilder& response )
     {
-        const std::string& type = _toLower( _getTypeName( request.url( )));
-        const auto& i = _subscriptions.find( type );
+        const std::string& type = _getTypeName( request.url( ));
+        const auto& i = _put.find( type );
 
-        if( i == _subscriptions.end( ))
+        if( i == _put.end( ))
             response.set_status( 404 );
         else
         {
@@ -379,8 +466,8 @@ Server::Server()
 Server::~Server()
 {}
 
-
-std::unique_ptr< Server > Server::parse( const int argc, const char* const* argv )
+std::unique_ptr< Server > Server::parse( const int argc,
+                                         const char* const* argv )
 {
     const std::string& param = _getServerParameter( argc, argv );
     if( param.empty( ))
@@ -389,7 +476,8 @@ std::unique_ptr< Server > Server::parse( const int argc, const char* const* argv
     return std::unique_ptr< Server >( new Server( URI( param )));
 }
 
-std::unique_ptr< Server > Server::parse( const int argc, const char* const* argv,
+std::unique_ptr< Server > Server::parse( const int argc,
+                                         const char* const* argv,
                                          Receiver& shared )
 {
     const std::string& param = _getServerParameter( argc, argv );
@@ -416,50 +504,69 @@ SocketDescriptor Server::getSocketDescriptor() const
     return fd;
 }
 
-bool Server::subscribe( servus::Serializable& object )
+bool Server::remove( const servus::Serializable& object )
 {
-    return _impl->subscribe( object );
+    return _impl->remove( object );
 }
 
-bool Server::subscribe( const std::string& event, const PUTFunc& func )
+bool Server::remove( const std::string& event )
 {
-    return _impl->subscribe( event,
+    return _impl->remove( event );
+}
+
+bool Server::handlePUT( servus::Serializable& object )
+{
+    return _impl->handlePUT( object );
+}
+
+bool Server::handlePUT( const std::string& event, const PUTFunc& func )
+{
+    return _impl->handlePUT( event, "",
                              [func]( const std::string& ) { return func(); } );
 }
 
-bool Server::subscribe( const std::string& event, const PUTPayloadFunc& func )
+bool Server::handlePUT( const std::string& event, const std::string& schema,
+                        const PUTFunc& func )
 {
-    return _impl->subscribe( event, func );
+    return _impl->handlePUT( event, schema,
+                             [func]( const std::string& ) { return func(); } );
 }
 
-bool Server::unsubscribe( const servus::Serializable& object )
+bool Server::handlePUT( const std::string& event, const PUTPayloadFunc& func )
 {
-    return _impl->unsubscribe( object );
+    return _impl->handlePUT( event, "", func );
 }
 
-bool Server::unsubscribe( const std::string& event )
+bool Server::handlePUT( const std::string& event,const std::string& schema,
+                        const PUTPayloadFunc& func )
 {
-    return _impl->unsubscribe( event );
+    return _impl->handlePUT( event, schema, func );
 }
 
-bool Server::register_( servus::Serializable& object )
+bool Server::handleGET( servus::Serializable& object )
 {
-    return _impl->register_( object );
+    return _impl->handleGET( object );
 }
 
-bool Server::register_( const std::string& event, const GETFunc& func )
+bool Server::handleGET( const std::string& event, const GETFunc& func )
 {
-    return _impl->register_( event, func );
+    return _impl->handleGET( event, "", func );
 }
 
-bool Server::unregister( const servus::Serializable& object )
+bool Server::handleGET( const std::string& event, const std::string& schema,
+                        const GETFunc& func )
 {
-    return _impl->unregister( object );
+    return _impl->handleGET( event, schema, func );
 }
 
-bool Server::unregister( const std::string& event )
+std::string Server::getSchema( const servus::Serializable& object ) const
 {
-    return _impl->unregister( event );
+    return _impl->getSchema( object.getTypeName( ));
+}
+
+std::string Server::getSchema( const std::string& event ) const
+{
+    return _impl->getSchema( event );
 }
 
 void Server::addSockets( std::vector< detail::Socket >& entries )
