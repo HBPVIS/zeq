@@ -1,3 +1,2 @@
 # -*- mode: cmake -*-
 git_subproject(Servus https://github.com/HBPVIS/Servus.git e8b9306)
-git_subproject(httpxx https://github.com/AndreLouisCaron/httpxx.git a72fe98)

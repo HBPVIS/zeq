@@ -38,6 +38,6 @@ endif()
 
 common_library(ZeroEQ)
 
-if(HTTPXX_FOUND)
+if(CPPNETLIB_FOUND)
   add_subdirectory(http)
 endif()

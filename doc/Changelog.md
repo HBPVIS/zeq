@@ -2,6 +2,8 @@
 
 # git master
 
+* [184](https://github.com/HBPVIS/ZeroEQ/pull/184):
+  Use cppnetlib to implement HTTP server to support multiple clients
 * [181](https://github.com/HBPVIS/ZeroEQ/pull/181):
   Specification for registry and schema API using REST
 * [179](https://github.com/HBPVIS/ZeroEQ/pull/179):

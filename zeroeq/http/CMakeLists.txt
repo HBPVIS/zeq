@@ -1,10 +1,19 @@
 # Copyright (c) HBP 2014-2016 Daniel.Nachbaur@epfl.ch
 
-set(ZEROEQHTTP_PUBLIC_HEADERS server.h)
-set(ZEROEQHTTP_HEADERS jsoncpp/json/json.h jsoncpp/json/json-forwards.h)
-set(ZEROEQHTTP_SOURCES server.cpp jsoncpp/jsoncpp.cpp)
-set(ZEROEQHTTP_LINK_LIBRARIES PUBLIC ZeroEQ
-                              PRIVATE ${HTTPXX_LIBRARIES} ${LIBZMQ_LIBRARIES})
+set(ZEROEQHTTP_PUBLIC_HEADERS
+  server.h
+)
+set(ZEROEQHTTP_HEADERS
+  requestHandler.h
+  jsoncpp/json/json.h
+  jsoncpp/json/json-forwards.h
+)
+set(ZEROEQHTTP_SOURCES
+  server.cpp
+  jsoncpp/jsoncpp.cpp
+)
+set(ZEROEQHTTP_LINK_LIBRARIES PUBLIC ZeroEQ PRIVATE ${CPPNETLIB_LIBRARIES}
+                                                    ${LIBZMQ_LIBRARIES})
 
 if(MSVC)
   list(APPEND ZEROEQHTTP_LINK_LIBRARIES Ws2_32)

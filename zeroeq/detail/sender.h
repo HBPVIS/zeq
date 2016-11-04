@@ -51,6 +51,11 @@ public:
             zmq_ctx_destroy( _context );
     }
 
+    void* getContext()
+    {
+        return _context;
+    }
+
     std::string getAddress() const
     {
         return uri.getHost() + ":" + std::to_string( uint32_t( uri.getPort( )));

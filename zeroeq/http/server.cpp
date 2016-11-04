@@ -6,6 +6,8 @@
 
 #include "server.h"
 
+#include "requestHandler.h"
+
 #include "../log.h"
 #include "../detail/broker.h"
 #include "../detail/sender.h"
@@ -15,14 +17,8 @@
 
 #include <servus/serializable.h>
 
-#include <httpxx/BufferedMessage.hpp>
-#include <httpxx/Error.hpp>
-#include <httpxx/Message.hpp>
-#include <httpxx/ResponseBuilder.hpp>
-
 #include <algorithm>
-
-namespace httpxx = ::http; // avoid confusion between httpxx and zeroeq::http
+#include <thread>
 
 namespace
 {
@@ -62,20 +58,8 @@ bool _endsWithSchema( const std::string& uri )
                         std::string::npos, REQUEST_SCHEMA ) == 0;
 }
 
-/**
-  In a typical situation, user agents can discover via a preflight request
-  whether a cross-origin resource is prepared to accept requests. The current
-  implementation of this class does not support this mechanism and has to
-  accept cross-origin resources. In order to achieve that, access control
-  headers are added to all HTTP responses, meaning that all sources are accepted
-  for all requests.
-  More information can be found here: https://www.w3.org/TR/cors
-*/
-const std::string access_control_allow_origins = "*";
-const std::string access_control_allow_headers = "Content-Type";
-const std::string access_control_allow_methods = "GET,PUT,OPTIONS";
+} // unnamed namespace
 
-}
 
 namespace zeroeq
 {
@@ -88,20 +72,47 @@ public:
     Impl() : Impl( URI( )) {}
 
     Impl( const URI& uri_ )
-        : detail::Sender( uri_, 0, ZMQ_STREAM )
+        : detail::Sender( URI( _getInprocURI( )), 0, ZMQ_PAIR )
+        , _requestHandler( _getInprocURI(), getContext( ))
+        , _httpOptions( _requestHandler )
+        , _httpServer( _httpOptions.
+                       // INADDR_ANY translation: zmq -> boost.asio
+                       address( uri_.getHost() == "*" ? "0.0.0.0"
+                                                      : uri_.getHost( )).
+                       port( std::to_string( int(uri_.getPort( )))).
+                       reuse_address( true ) )
     {
-        const std::string& zmqURI = buildZmqURI( uri );
-        if( ::zmq_bind( socket, zmqURI.c_str( )) == -1 )
+        if( ::zmq_bind( socket, _getInprocURI().c_str( )) == -1 )
         {
             ZEROEQTHROW( std::runtime_error(
-                             std::string( "Cannot bind http server socket '" ) +
-                             zmqURI + "': " +
-                             zmq_strerror( zmq_errno( )) +
-                             ( zmq_errno() == ENODEV ?
-                                   ": host name instead of device used?" : "" )
-                             ));
+                             "Cannot bind HTTPServer to inproc socket" ));
         }
-        initURI();
+
+        try
+        {
+            _httpServer.listen();
+            _httpThread.reset( new std::thread(
+                               std::bind( &HTTPServer::run, &_httpServer )));
+        }
+        catch( const std::exception& e )
+        {
+            ZEROEQTHROW( std::runtime_error(
+                             std::string( "Error while starting HTTP server: " )
+                             + e.what( )));
+        }
+
+        uri = URI();
+        uri.setHost( _httpServer.address( ));
+        uri.setPort( std::stoi( _httpServer.port( )));
+    }
+
+    ~Impl()
+    {
+        if( _httpThread )
+        {
+            _httpServer.stop();
+            _httpThread->join();
+        }
     }
 
     bool remove( const servus::Serializable& serializable )
@@ -196,156 +207,30 @@ public:
         entries.push_back( entry );
     }
 
-    void process( const uint32_t timeout )
+    void process()
     {
-        // Read http request
-        httpxx::BufferedRequest request;
-        uint8_t id[256];
-        int idSize = 0;
-        int flags = 0;
-        while( !request.complete( ))
+        HTTPRequest* request = nullptr;
+        ::zmq_recv( socket, &request, sizeof( request ), 0 );
+        if( !request )
+            ZEROEQTHROW( std::runtime_error(
+                           "Could not receive HTTP request from HTTP server" ));
+
+        switch( request->method )
         {
-            // id of client (used for reply)
-            idSize = ::zmq_recv( socket, id, sizeof( id ), flags );
-            if( idSize <= 0 )
-            {
-                if( flags == 0 || zmq_errno() != EAGAIN )
-                    ZEROEQWARN << "HTTP server receive failed: "
-                               << zmq_strerror( zmq_errno( )) << std::endl;
-                return;
-            }
-            flags = 0;
-
-            // msg body
-            zmq_msg_t msg;
-            zmq_msg_init( &msg );
-            zmq_msg_recv( &msg, socket, 0 );
-            const char* data = (const char*)zmq_msg_data( &msg );
-            const size_t msgSize = zmq_msg_size( &msg );
-
-            if( msgSize == 0 )
-            {
-                if( data )
-                {
-                    // Skip zero-sized "Peer-Address" or empty string messages
-                    // interleaved in the communication with libzmq 4.1.4.
-                    // Those may or may not be followed by a "real" message, so
-                    // try receiving again and return if there is nothing (to
-                    // avoid blocking the receiving thread).
-                    flags = ZMQ_NOBLOCK;
-                    zmq_msg_close( &msg );
-                    continue;
-                }
-
-                if( zmq_errno() != EAGAIN )
-                    ZEROEQWARN << "HTTP server receive failed: "
-                               << zmq_strerror( zmq_errno( )) << std::endl;
-                return;
-            }
-
-            size_t consumed = 0;
-            try
-            {
-                while( !request.complete() && msgSize > consumed )
-                    consumed += request.feed( data + consumed,
-                                              msgSize - consumed );
-            }
-            catch( const httpxx::Error& )
-            {
-                zmq_msg_close( &msg );
-                return; // garbage from client, ignore
-            }
-            if( msgSize > consumed )
-                ZEROEQWARN << "Unconsumed request data: " << data + consumed
-                           << std::endl;
-
-            zmq_msg_close( &msg );
+        case HTTPRequest::Method::GET:
+            _processGET( *request );
+            break;
+        case HTTPRequest::Method::PUT:
+            _processPUT( *request );
+            break;
+        default:
+            ZEROEQTHROW( std::runtime_error(
+                            "Encountered invalid HTTP method to process: " +
+                             std::to_string( int( request->method ))));
         }
 
-        // Respond to request
-        httpxx::ResponseBuilder response;
-        std::string body;
-        if( request.method() == httpxx::Method::get( ))
-            body = _processGET( request, response );
-        else if( request.method() == httpxx::Method::put( ))
-        {
-            if( request.has_header( "Content-Length" ))
-                _processPUT( request, response );
-            else
-                response.set_status( 411 ); // Content-Length required
-            body.clear(); // no response body
-        }
-        else
-        {
-            if( request.method() ==  httpxx::Method::options() )
-                // OPTIONS requests are accepted since access control is not
-                // currently implemented.
-                response.set_status( 200 );
-            else
-                response.set_status( 405 ); // Method Not Allowed
-            body.clear(); // no response body
-        }
-
-
-        // response header
-        if( response.status() >= 400 && response.status() < 500 )
-            body = response.to_string();
-        response.headers()[ "Content-Length" ] =
-            std::to_string( body.length( ));
-        response.headers()[ "Access-Control-Allow-Origin" ] =
-            access_control_allow_origins;
-        response.headers()[ "Access-Control-Allow-Headers" ] =
-            access_control_allow_headers;
-        response.headers()[ "Access-Control-Allow-Methods" ] =
-            access_control_allow_methods;
-        const std::string& rep = response.to_string();
-
-        if( !sendResponse( id, idSize, ZMQ_SNDMORE, timeout ))
-            return;
-        if( !sendResponse( rep.c_str(), rep.length(),
-                      body.empty() ? 0 : ZMQ_SNDMORE, timeout ))
-        {
-            return;
-        }
-
-        // response body
-        if( !body.empty( ))
-        {
-            if( !sendResponse( id, idSize, ZMQ_SNDMORE, timeout ))
-                return;
-            if( !sendResponse( body.c_str(), body.length(), 0, timeout ))
-                return;
-        }
-    }
-
-    bool sendResponse( const void* data, const size_t length, const int flags,
-                       const uint32_t timeout )
-    {
-        while( ::zmq_send( socket, data, length,
-                           flags | ZMQ_NOBLOCK ) != int( length ))
-        {
-            // could be disconnect, send buffer full, ...
-            if( zmq_errno() == EAGAIN )
-            {
-                detail::Socket pollItem;
-                pollItem.socket = socket;
-                pollItem.events = ZMQ_POLLERR;
-                if( ::zmq_poll( &pollItem, 1, timeout == TIMEOUT_INDEFINITE
-                                              ? -1 : timeout ) > 0 )
-                {
-                    // client still alive, send again
-                    continue;
-                }
-                else if( zmq_errno() != EAGAIN )
-                    ZEROEQWARN << "HTTP server poll failed: "
-                               << zmq_strerror( zmq_errno( )) << std::endl;
-            }
-            else
-                ZEROEQWARN << "HTTP server send failed: "
-                           << zmq_strerror( zmq_errno( )) << std::endl;
-            return false;
-        }
-        return true;
+        bool done = true;
+        ::zmq_send( socket, &done, sizeof( done ), 0 );
     }
 
 protected:
@@ -356,6 +241,18 @@ protected:
     PUTFuncMap _put;
     GETFuncMap _get;
     SchemaMap _schemas;
+
+    RequestHandler _requestHandler;
+    HTTPServer::options _httpOptions;
+    HTTPServer _httpServer;
+    std::unique_ptr< std::thread > _httpThread;
+
+    std::string _getInprocURI() const
+    {
+        std::ostringstream inprocURI;
+        inprocURI << "inproc://#" << static_cast< const void* >( this );
+        return inprocURI.str();
+    }
 
     std::string _getTypeName( const std::string& url )
     {
@@ -382,48 +279,53 @@ protected:
         return i != _schemas.end() ? i->second : std::string();
     }
 
-    std::string _processGET( const httpxx::BufferedRequest& request,
-                             httpxx::ResponseBuilder& response )
+    void _processGET( HTTPRequest& request )
     {
-        response.set_status( 200 ); // be optimistic
+        request.status = HTTPServer::response::ok; // be optimistic
 
-        const std::string& type = _getTypeName( request.url( ));
+        const std::string& type = _getTypeName( request.url );
         const auto& i = _get.find( type );
         if( i != _get.end( ))
-            return i->second();
+        {
+            request.reply = i->second();
+            return;
+        }
 
         if( type == REQUEST_REGISTRY )
-            return _returnRegistry();
+        {
+            request.reply = _returnRegistry();
+            return;
+        }
 
         if( _endsWithSchema( type ))
         {
             const auto& schema = _returnSchema( type.substr( 0,
                                                      type.find_last_of( '/' )));
             if( !schema.empty( ))
-                return schema;
+            {
+                request.reply = schema;
+                return;
+            }
         }
 
-        response.set_status( 404 );
-        return std::string();
+        request.status = HTTPServer::response::not_found;
     }
 
-    void _processPUT( const httpxx::BufferedRequest& request,
-                      httpxx::ResponseBuilder& response )
+    void _processPUT( HTTPRequest& request )
     {
-        const std::string& type = _getTypeName( request.url( ));
+        const std::string& type = _getTypeName( request.url );
         const auto& i = _put.find( type );
 
         if( i == _put.end( ))
-            response.set_status( 404 );
+            request.status = HTTPServer::response::not_found;
         else
         {
-            if( i->second( request.body( )))
-                response.set_status( 200 );
+            if( i->second( request.request ))
+                request.status = HTTPServer::response::ok;
             else
-                response.set_status( 400 );
+                request.status = HTTPServer::response::bad_request;
         }
     }
-
 };
 
 namespace
@@ -574,9 +476,9 @@ void Server::addSockets( std::vector< detail::Socket >& entries )
     _impl->addSockets( entries );
 }
 
-void Server::process( detail::Socket&, const uint32_t timeout )
+void Server::process( detail::Socket&, const uint32_t )
 {
-    _impl->process( timeout );
+    _impl->process();
 }
 
 }
