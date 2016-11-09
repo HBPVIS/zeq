@@ -6,6 +6,7 @@
 #ifndef ZEROEQ_HTTP_SERVER_H
 #define ZEROEQ_HTTP_SERVER_H
 
+#include <zeroeq/http/api.h>
 #include <zeroeq/receiver.h> // base class
 #include <zeroeq/log.h>
 
@@ -45,13 +46,13 @@ public:
      * @param shared a shared receiver, see Receiver constructor.
      * @throw std::runtime_error on malformed URI or connection issues.
      */
-    ZEROEQ_API Server( const URI& uri, Receiver& shared );
-    ZEROEQ_API explicit Server( const URI& uri );
-    ZEROEQ_API explicit Server( Receiver& shared );
-    ZEROEQ_API Server();
-    explicit Server( Server& shared )
+    ZEROEQHTTP_API Server( const URI& uri, Receiver& shared );
+    ZEROEQHTTP_API explicit Server( const URI& uri );
+    ZEROEQHTTP_API explicit Server( Receiver& shared );
+    ZEROEQHTTP_API Server();
+    ZEROEQHTTP_API explicit Server( Server& shared )
         : Server( static_cast< Receiver& >( shared )) {}
-    ZEROEQ_API virtual ~Server();
+    ZEROEQHTTP_API ~Server();
 
     /**
      * Create a new Server when requested.
@@ -62,11 +63,11 @@ public:
      *   parameters configure the web server, running by default on INADDR_ANY
      *   and a randomly chosen port
      */
-    ZEROEQ_API static std::unique_ptr< Server > parse( int argc,
-                                                       const char* const* argv);
-    ZEROEQ_API static std::unique_ptr< Server > parse( int argc,
-                                                       const char* const* argv,
-                                                       Receiver& shared );
+    ZEROEQHTTP_API 
+	static std::unique_ptr< Server > parse( int argc, const char* const* argv);
+    ZEROEQHTTP_API
+	static std::unique_ptr< Server > parse( int argc, const char* const* argv,
+                                            Receiver& shared );
     /**
      * Get the publisher URI.
      *
@@ -75,7 +76,7 @@ public:
      *
      * @return the publisher URI.
      */
-    ZEROEQ_API const URI& getURI() const;
+    ZEROEQHTTP_API const URI& getURI() const;
 
     /**
      * Get the underlying socket descriptor.
@@ -86,7 +87,7 @@ public:
      * @return the socket descriptor.
      * @throw std::runtime_error if the descriptor could not be obtained.
      */
-    ZEROEQ_API SocketDescriptor getSocketDescriptor() const;
+    ZEROEQHTTP_API SocketDescriptor getSocketDescriptor() const;
     //@}
 
     /** @name Object registration for PUT and GET requests */
@@ -96,10 +97,10 @@ public:
         { return handlePUT( object ) && handleGET( object );}
 
     /** Remove PUT and GET handling for given object. */
-    ZEROEQ_API bool remove( const servus::Serializable& object );
+    ZEROEQHTTP_API bool remove( const servus::Serializable& object );
 
     /** Remove PUT and GET handling for given event. */
-    ZEROEQ_API bool remove( const std::string& event );
+    ZEROEQHTTP_API bool remove( const std::string& event );
 
     /**
      * Subscribe a serializable object to receive updates from HTTP PUT
@@ -114,7 +115,7 @@ public:
      * @param object the object to update on receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool handlePUT( servus::Serializable& object );
+    ZEROEQHTTP_API bool handlePUT( servus::Serializable& object );
 
     /**
      *
@@ -126,7 +127,8 @@ public:
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool handlePUT( const std::string& event, const PUTFunc& func );
+    ZEROEQHTTP_API
+    bool handlePUT( const std::string& event, const PUTFunc& func );
 
     /**
      * @overload
@@ -134,7 +136,7 @@ public:
      * @param schema describes data layout of event
      * @param func the callback function for serving the PUT request
      */
-    ZEROEQ_API bool handlePUT( const std::string& event,
+    ZEROEQHTTP_API bool handlePUT( const std::string& event,
                                const std::string& schema, const PUTFunc& func );
 
     /**
@@ -146,7 +148,7 @@ public:
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool handlePUT( const std::string& event,
+    ZEROEQHTTP_API bool handlePUT( const std::string& event,
                                const PUTPayloadFunc& func );
 
     /**
@@ -155,7 +157,7 @@ public:
      * @param schema describes data layout of event
      * @param func the callback function for serving the PUT request
      */
-    ZEROEQ_API bool handlePUT( const std::string& event,
+    ZEROEQHTTP_API bool handlePUT( const std::string& event,
                                const std::string& schema,
                                const PUTPayloadFunc& func );
     /**
@@ -170,7 +172,7 @@ public:
      * @param object the object to serve during receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool handleGET( servus::Serializable& object );
+    ZEROEQHTTP_API bool handleGET( servus::Serializable& object );
 
     /**
      * Subscribe an event to serve HTTP GET requests.
@@ -182,7 +184,8 @@ public:
      * @param func the callback function for serving the GET request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool handleGET( const std::string& event, const GETFunc& func );
+    ZEROEQHTTP_API
+	bool handleGET( const std::string& event, const GETFunc& func );
 
     /**
      * @overload
@@ -190,17 +193,19 @@ public:
      * @param schema describes data layout of event
      * @param func the callback function for serving the GET request
      */
-    ZEROEQ_API bool handleGET( const std::string& event,
-                               const std::string& schema, const GETFunc& func );
+    ZEROEQHTTP_API
+	bool handleGET( const std::string& event, const std::string& schema,
+                   	const GETFunc& func );
 
     /**
      * @return the registered schema for the given object, or empty if not
      *         registered.
      */
-    ZEROEQ_API std::string getSchema( const servus::Serializable& object) const;
+    ZEROEQHTTP_API
+	std::string getSchema( const servus::Serializable& object) const;
 
     /** @overload */
-    ZEROEQ_API std::string getSchema( const std::string& event ) const;
+    ZEROEQHTTP_API std::string getSchema( const std::string& event ) const;
     //@}
 
 private:

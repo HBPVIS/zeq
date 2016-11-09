@@ -134,9 +134,9 @@ BOOST_AUTO_TEST_CASE(publish_receive_zeroconf)
     zeroeq::Subscriber subscriber( publisher.getSession( ));
 
     BOOST_CHECK( subscriber.subscribe( test::Echo::IDENTIFIER(),
-                                       &test::onEchoEvent ));
+                                       zeroeq::EventPayloadFunc(&test::onEchoEvent )));
     BOOST_CHECK( noSubscriber.subscribe( test::Echo::IDENTIFIER(),
-                                         &test::onEchoEvent ));
+                                         zeroeq::EventPayloadFunc(&test::onEchoEvent )));
 
     bool received = false;
     for( size_t i = 0; i < 20; ++i )
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_zeroconf_disabled)
     zeroeq::Subscriber subscriber( test::buildUniqueSession( ));
 
     BOOST_CHECK( subscriber.subscribe( test::Echo::IDENTIFIER(),
-                                       &test::onEchoEvent ));
+                                       zeroeq::EventPayloadFunc(&test::onEchoEvent )));
 
     bool received = false;
     for( size_t i = 0; i < 20; ++i )
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
 
     // Make sure we're connected
     BOOST_CHECK( subscriber.subscribe( test::Echo::IDENTIFIER(),
-                                       &test::onEchoEvent ));
+                                       zeroeq::EventPayloadFunc(&test::onEchoEvent )));
     for( size_t i = 0; i < 20; ++i )
     {
         BOOST_CHECK( publisher->publish( test::Echo( test::echoMessage )));
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_late_zeroconf)
     zeroeq::Publisher publisher( subscriber.getSession( ));
 
     BOOST_CHECK( subscriber.subscribe( test::Echo::IDENTIFIER(),
-                                       &test::onEchoEvent ));
+                                       zeroeq::EventPayloadFunc(&test::onEchoEvent )));
     bool received = false;
     for( size_t i = 0; i < 20; ++i )
     {
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(publish_blocking_receive_zeroconf)
     zeroeq::detail::Sender::getUUID() = servus::make_UUID(); // different machine
 
     BOOST_CHECK( subscriber.subscribe( test::Echo::IDENTIFIER(),
-                                       &test::onEchoEvent ));
+                                       zeroeq::EventPayloadFunc( &test::onEchoEvent )));
 
     Publisher publisher;
     std::thread thread( std::bind( &Publisher::run, &publisher,

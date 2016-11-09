@@ -6,7 +6,9 @@ set(ZEROEQHTTP_SOURCES server.cpp jsoncpp/jsoncpp.cpp)
 set(ZEROEQHTTP_LINK_LIBRARIES PUBLIC ZeroEQ
                               PRIVATE ${HTTPXX_LIBRARIES} ${LIBZMQ_LIBRARIES})
 
-if(NOT MSVC)
+if(MSVC)
+  list(APPEND ZEROEQHTTP_LINK_LIBRARIES Ws2_32)
+else()
   set_source_files_properties(jsoncpp/jsoncpp.cpp PROPERTIES COMPILE_FLAGS
     -Wno-shadow)
 endif()

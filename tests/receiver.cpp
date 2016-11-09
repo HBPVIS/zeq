@@ -55,8 +55,8 @@ BOOST_AUTO_TEST_CASE(test_two_subscribers)
     zeroeq::Subscriber subscriber2( test::buildURI( "localhost", publisher ),
                                     subscriber1 );
 
-    BOOST_CHECK( subscriber1.subscribe( test::Echo::IDENTIFIER(), &onEvent1 ));
-    BOOST_CHECK( subscriber2.subscribe( test::Echo::IDENTIFIER(), &onEvent2 ));
+    BOOST_CHECK( subscriber1.subscribe( test::Echo::IDENTIFIER(), zeroeq::EventFunc( &onEvent1 )));
+    BOOST_CHECK( subscriber2.subscribe( test::Echo::IDENTIFIER(), zeroeq::EventFunc( &onEvent2 )));
 
     testReceive( publisher, subscriber1, gotOne, gotTwo, __LINE__ );
     testReceive( publisher, subscriber2, gotOne, gotTwo, __LINE__ );
@@ -71,8 +71,8 @@ BOOST_AUTO_TEST_CASE(test_publisher_routing)
     zeroeq::Subscriber subscriber2( test::buildURI( "localhost", publisher ),
                                  *subscriber1 );
 
-    BOOST_CHECK( subscriber1->subscribe( test::Echo::IDENTIFIER(), &onEvent1 ));
-    BOOST_CHECK( subscriber2.subscribe( test::Echo::IDENTIFIER(), &onEvent2 ));
+    BOOST_CHECK( subscriber1->subscribe( test::Echo::IDENTIFIER(), zeroeq::EventFunc( &onEvent1 )));
+    BOOST_CHECK( subscriber2.subscribe( test::Echo::IDENTIFIER(), zeroeq::EventFunc( &onEvent2 )));
 
     testReceive( publisher, *subscriber1, gotTwo, __LINE__ );
     BOOST_CHECK( !gotOne );
