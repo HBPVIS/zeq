@@ -2,6 +2,9 @@
 
 # git master
 
+* [185](https://github.com/HBPVIS/ZeroEQ/pull/185):
+  zeroeq::http::Server::getSocketDescriptor() notifies on write after
+  [#184](https://github.com/HBPVIS/ZeroEQ/pull/184), not anymore on read
 * [184](https://github.com/HBPVIS/ZeroEQ/pull/184):
   Use cppnetlib to implement HTTP server to support multiple clients
 * [181](https://github.com/HBPVIS/ZeroEQ/pull/181):

@@ -63,10 +63,10 @@ public:
      *   parameters configure the web server, running by default on INADDR_ANY
      *   and a randomly chosen port
      */
-    ZEROEQHTTP_API 
-	static std::unique_ptr< Server > parse( int argc, const char* const* argv);
     ZEROEQHTTP_API
-	static std::unique_ptr< Server > parse( int argc, const char* const* argv,
+    static std::unique_ptr< Server > parse( int argc, const char* const* argv);
+    ZEROEQHTTP_API
+    static std::unique_ptr< Server > parse( int argc, const char* const* argv,
                                             Receiver& shared );
     /**
      * Get the publisher URI.
@@ -82,7 +82,8 @@ public:
      * Get the underlying socket descriptor.
      *
      * Can be used by client code to be notified when new data is available and
-     * subsequently call receive.
+     * subsequently call receive. Due to implementation details, the socket
+     * notifies on write, not on read.
      *
      * @return the socket descriptor.
      * @throw std::runtime_error if the descriptor could not be obtained.
@@ -185,7 +186,7 @@ public:
      * @return true if subscription was successful, false otherwise
      */
     ZEROEQHTTP_API
-	bool handleGET( const std::string& event, const GETFunc& func );
+    bool handleGET( const std::string& event, const GETFunc& func );
 
     /**
      * @overload
@@ -194,15 +195,15 @@ public:
      * @param func the callback function for serving the GET request
      */
     ZEROEQHTTP_API
-	bool handleGET( const std::string& event, const std::string& schema,
-                   	const GETFunc& func );
+    bool handleGET( const std::string& event, const std::string& schema,
+                    const GETFunc& func );
 
     /**
      * @return the registered schema for the given object, or empty if not
      *         registered.
      */
     ZEROEQHTTP_API
-	std::string getSchema( const servus::Serializable& object) const;
+    std::string getSchema( const servus::Serializable& object) const;
 
     /** @overload */
     ZEROEQHTTP_API std::string getSchema( const std::string& event ) const;
