@@ -95,17 +95,13 @@ public:
         response.status = httpRequest.status;
         response.content = httpRequest.reply;
 
-        // don't use stock_reply() here as we need a different Content-Type
+        // don't use stock_reply() here as we do not want to imply a content
+        // type yet
         HTTPServer::response_header contentLength;
         contentLength.name = "Content-Length";
         contentLength.value = std::to_string( httpRequest.reply.length());
 
-        HTTPServer::response_header contentType;
-        contentType.name = "Content-Type";
-        contentType.value = "application/json";
-
         response.headers.push_back( contentLength );
-        response.headers.push_back( contentType );
         _addCorsHeaders( response );
     }
 

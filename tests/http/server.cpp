@@ -45,8 +45,6 @@ HTTPClient::response _buildResponse( const std::string& body = std::string( ))
     {
         response.add_header( std::make_pair( "Content-Length",
                                              std::to_string( body.size( ))));
-        response.add_header( std::make_pair( "Content-Type",
-                                             "application/json" ));
     }
     response.body( body );
     return response;
@@ -174,10 +172,10 @@ private:
             response = get( request_ );
             break;
         case Method::POST:
-            response = post( request_, data, std::string( "application/json" ));
+            response = post( request_, data );
             break;
         case Method::PUT:
-            response = put( request_, data, std::string( "application/json" ));
+            response = put( request_, data );
             break;
         }
 
