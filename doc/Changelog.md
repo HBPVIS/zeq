@@ -2,13 +2,25 @@
 
 # git master
 
+# Release 0.7 (09-12-2016)
+
 * [185](https://github.com/HBPVIS/ZeroEQ/pull/185):
   zeroeq::http::Server::getSocketDescriptor() notifies on write after
   [#184](https://github.com/HBPVIS/ZeroEQ/pull/184), not anymore on read
 * [184](https://github.com/HBPVIS/ZeroEQ/pull/184):
   Use cppnetlib to implement HTTP server to support multiple clients
-* [181](https://github.com/HBPVIS/ZeroEQ/pull/181):
-  Specification for registry and schema API using REST
+* [182](https://github.com/HBPVIS/ZeroEQ/pull/182):
+  * Clearer HTTP server registration methods:
+    * handle( serializable ) instead of add()
+    * handlePUT( serializable/event ) instead of subscribe()
+    * handleGET( serializable/event ) instead of register_()
+    * remove( serializable/event ) instead of unsubscribe() and unregister()
+  * HTTP server REST API
+    * /registry endpoint returns handled events/objects
+    * <registry-item>/schema endpoints return schema describing the
+      events/objects. For servus::Serializable objects the schema is provided
+      via getSchema(), for events the schema can be optionally provided via
+      handlePUT() and handleGET()
 * [179](https://github.com/HBPVIS/ZeroEQ/pull/179):
   Fix http server blocking issues with libzmq 4.1.4
 

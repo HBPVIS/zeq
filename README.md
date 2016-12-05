@@ -22,16 +22,15 @@ ZeroEQ provides the following major features:
 * Serialization of events using [ZeroBuf](https://github.com/HBPVIS/ZeroBuf)
 * [List of RFCs](@ref rfcs)
 
-# Building
+# Building from Source
 
-ZeroEQ is a cross-platform toolkit, designed to run on any modern operating
-system, including all Unix variants. ZeroEQ uses CMake to create a
-platform-specific build environment. The following platforms and build
-environments are tested:
+ZeroEQ is a cross-platform library, designed to run on any modern operating
+system, including all Unix variants. It requires a C++11 compiler and uses CMake
+to create a platform-specific build environment. The following platforms and
+build environments are tested:
 
-* Linux: Ubuntu 14.04, RHEL 6 using gcc 4.8
-* Windows: 8 using Visual Studio 12
-* Mac OS X: 10.9 and 10.10 using clang 6
+* Linux: Ubuntu 16.04, RHEL 6.8 (Makefile, Ninja)
+* Mac OS X: 10.9 (Makefile, Ninja)
 
 ZeroEQ requires the following external, pre-installed dependencies:
 
@@ -43,7 +42,6 @@ Building from source is as simple as:
     git clone https://github.com/HBPVIS/ZeroEQ.git
     mkdir ZeroEQ/build
     cd ZeroEQ/build
-    cmake ..
-    make
-
+    cmake -GNinja ..
+    ninja
 This work has been partially funded by the European Union Seventh Framework Program (FP7/2007­2013) under grant agreement no. 604102 (HBP).

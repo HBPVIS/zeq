@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(ZeroEQ VERSION 0.7.0)
-set(ZeroEQ_VERSION_ABI 6)
+set(ZeroEQ_VERSION_ABI 7)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake
                               ${CMAKE_SOURCE_DIR}/CMake/common)
