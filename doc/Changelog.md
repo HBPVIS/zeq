@@ -2,6 +2,10 @@
 
 # git master
 
+* [188](https://github.com/HBPVIS/ZeroEQ/pull/188):
+  * Support custom HTTP URL endpoint for handled Serializables
+  * Expose hyphenated URLs for CamelCase event names
+
 # Release 0.7 (09-12-2016)
 
 * [185](https://github.com/HBPVIS/ZeroEQ/pull/185):

@@ -84,7 +84,7 @@ class Foo : public servus::Serializable
 public:
     Foo() { _notified = false; }
 
-    void setNotified() { _notified = true; }
+    void setNotified( const bool notified = true ) { _notified = notified; }
     bool getNotified() const { return _notified; }
 
     std::string getSchema() const final
@@ -666,6 +666,38 @@ BOOST_AUTO_TEST_CASE(event_schema_name)
     client.checkGET( "/schema", _buildResponse( "bar" ), __LINE__ );
     client.checkGET( "/schema/schema", _buildResponse( "dummy_schema" ),
                      __LINE__ );
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(multiple_event_name_for_same_object)
+{
+    bool running = true;
+    zeroeq::http::Server server;
+    Foo foo;
+
+    foo.registerSerializeCallback( [&]{ foo.setNotified(); });
+    foo.registerDeserializedCallback( [&]{ foo.setNotified(); });
+
+    server.handleGET( foo );
+    server.handlePUT( "test/camelBar", foo );
+
+    std::thread thread( [&]() { while( running ) server.receive( 100 ); });
+
+    Client client( server.getURI( ));
+
+    client.checkPUT( "/test/camel-bar", jsonPut, response200, __LINE__ );
+    BOOST_CHECK( foo.getNotified( ));
+
+    client.checkPUT( "/test/foo", "", error400_nocors, __LINE__ );
+
+    foo.setNotified( false );
+
+    client.checkGET( "/test/foo", _buildResponse( jsonGet ), __LINE__ );
+    BOOST_CHECK( foo.getNotified( ));
+
+    client.checkGET( "/test/camel-bar", error404, __LINE__ );
 
     running = false;
     thread.join();

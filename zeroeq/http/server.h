@@ -93,15 +93,29 @@ public:
 
     /** @name Object registration for PUT and GET requests */
     //@{
-    /** Handle PUT and GET for the given object. */
+    /**
+     * Handle PUT and GET for the given object.
+     *
+     * @param object the object to update and serve on receive()
+     * @return true if subscription was successful, false otherwise
+     */
     bool handle( servus::Serializable& object )
-        { return handlePUT( object ) && handleGET( object );}
+        { return handlePUT( object ) && handleGET( object ); }
+
+    /**
+     * @overload
+     * @param object the object to update and serve on receive()
+     * @param endpoint use this as the URL endpoint instead of the default
+     *                 servus::Serializable::getTypeName()
+     */
+    ZEROEQHTTP_API bool handle( const std::string& endpoint,
+                                servus::Serializable& object );
 
     /** Remove PUT and GET handling for given object. */
     ZEROEQHTTP_API bool remove( const servus::Serializable& object );
 
-    /** Remove PUT and GET handling for given event. */
-    ZEROEQHTTP_API bool remove( const std::string& event );
+    /** Remove PUT and GET handling for given endpoint. */
+    ZEROEQHTTP_API bool remove( const std::string& endpoint );
 
     /**
      * Subscribe a serializable object to receive updates from HTTP PUT
@@ -119,48 +133,57 @@ public:
     ZEROEQHTTP_API bool handlePUT( servus::Serializable& object );
 
     /**
+     * @overload
+     * @param object the object to update on receive()
+     * @param endpoint use this as the URL endpoint instead of the default
+     *                 servus::Serializable::getTypeName()
+     */
+    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
+                                   servus::Serializable& object );
+
+    /**
+     * Subscribe an endpoint to receive HTTP PUT requests.
      *
-     * Subscribe an event to receive HTTP PUT requests.
+     * Every receival of the endpoint will call the registered callback function.
      *
-     * Every receival of the event will call the registered callback function.
-     *
-     * @param event the event name to receive PUT requests for during receive()
+     * @param endpoint the endpoint to receive PUT requests for during receive()
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
     ZEROEQHTTP_API
-    bool handlePUT( const std::string& event, const PUTFunc& func );
+    bool handlePUT( const std::string& endpoint, const PUTFunc& func );
 
     /**
      * @overload
-     * @param event the event name to receive PUT requests for during receive()
-     * @param schema describes data layout of event
+     * @param endpoint the endpoint to receive PUT requests for during receive()
+     * @param schema describes data layout of endpoint
      * @param func the callback function for serving the PUT request
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& event,
-                               const std::string& schema, const PUTFunc& func );
+    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
+                                   const std::string& schema,
+                                   const PUTFunc& func );
 
     /**
-     * Subscribe an event to receive HTTP PUT requests with payload.
+     * Subscribe an endpoint to receive HTTP PUT requests with payload.
      *
-     * Every receival of the event will call the registered callback function.
+     * Every receival of the endpoint will call the registered callback function.
      *
-     * @param event the event name to receive PUT requests for during receive()
+     * @param endpoint the endpoint to receive PUT requests for during receive()
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& event,
-                               const PUTPayloadFunc& func );
+    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
+                                   const PUTPayloadFunc& func );
 
     /**
      * @overload
-     * @param event the event name to receive PUT requests for during receive()
-     * @param schema describes data layout of event
+     * @param endpoint the endpoint to receive PUT requests for during receive()
+     * @param schema describes data layout of the endpoint
      * @param func the callback function for serving the PUT request
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& event,
-                               const std::string& schema,
-                               const PUTPayloadFunc& func );
+    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
+                                   const std::string& schema,
+                                   const PUTPayloadFunc& func );
     /**
      * Subscribe a serializable object to serve HTTP GET requests.
      *
@@ -173,29 +196,38 @@ public:
      * @param object the object to serve during receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQHTTP_API bool handleGET( servus::Serializable& object );
+    ZEROEQHTTP_API bool handleGET( const servus::Serializable& object );
 
     /**
-     * Subscribe an event to serve HTTP GET requests.
+     * @overload
+     * @param object the object to serve during receive()
+     * @param endpoint use this as the URL endpoint instead of the default
+     *                 servus::Serializable::getTypeName()
+     */
+    ZEROEQHTTP_API bool handleGET( const std::string& endpoint,
+                                   const servus::Serializable& object );
+
+    /**
+     * Subscribe an endpoint to serve HTTP GET requests.
      *
      * Every request will be directly handled during receive() by calling the
      * registered GET function.
      *
-     * @param event the event name to serve during receive()
+     * @param endpoint the endpoint to serve during receive()
      * @param func the callback function for serving the GET request
      * @return true if subscription was successful, false otherwise
      */
     ZEROEQHTTP_API
-    bool handleGET( const std::string& event, const GETFunc& func );
+    bool handleGET( const std::string& endpoint, const GETFunc& func );
 
     /**
      * @overload
-     * @param event the event name to serve during receive()
-     * @param schema describes data layout of event
+     * @param endpoint the endpoint to serve during receive()
+     * @param schema describes data layout of the endpoint
      * @param func the callback function for serving the GET request
      */
     ZEROEQHTTP_API
-    bool handleGET( const std::string& event, const std::string& schema,
+    bool handleGET( const std::string& endpoint, const std::string& schema,
                     const GETFunc& func );
 
     /**
@@ -203,10 +235,10 @@ public:
      *         registered.
      */
     ZEROEQHTTP_API
-    std::string getSchema( const servus::Serializable& object) const;
+    std::string getSchema( const servus::Serializable& object ) const;
 
     /** @overload */
-    ZEROEQHTTP_API std::string getSchema( const std::string& event ) const;
+    ZEROEQHTTP_API std::string getSchema( const std::string& endpoint ) const;
     //@}
 
 private:

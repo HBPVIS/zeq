@@ -22,10 +22,21 @@
 
 namespace
 {
-std::string _toLower( std::string value )
+// Transform camelCase to hyphenated-notation, e.g.
+// lexis/render/LookOut -> lexis/render/look-out
+// Inspiration: https://gist.github.com/rodamber/2558e25d4d8f6b9f2ffdf7bd49471340
+std::string _camelCaseToHyphenated( std::string camelCase )
 {
-    std::transform( value.begin(), value.end(), value.begin(), ::tolower );
-    return value;
+    std::string str( 1, tolower(camelCase[0]) );
+    for( auto it = camelCase.begin() + 1; it != camelCase.end(); ++it )
+    {
+        if( isupper(*it) && *(it-1) != '-' && islower(*(it-1)))
+            str += "-";
+        str += *it;
+    }
+
+    std::transform( str.begin(), str.end(), str.begin(), ::tolower );
+    return str;
 }
 
 // http://stackoverflow.com/questions/5343190
@@ -42,9 +53,9 @@ std::string _replaceAll( std::string subject, const std::string& search,
 }
 
 // convert name to lowercase with '/' separators instead of '::'
-void _convertEventName( std::string& event )
+void _convertEndpointName( std::string& endpoint )
 {
-    event = _toLower( _replaceAll( event, "::", "/" ));
+    endpoint = _camelCaseToHyphenated( _replaceAll( endpoint, "::", "/" ));
 }
 
 const std::string REQUEST_REGISTRY = "registry";
@@ -120,83 +131,83 @@ public:
         return remove( serializable.getTypeName( ));
     }
 
-    bool remove( std::string event )
+    bool remove( std::string endpoint )
     {
-        _convertEventName( event );
-        _schemas.erase( event );
-        const bool foundPUT = _put.erase( event ) != 0;
-        const bool foundGET = _get.erase( event ) != 0;
+        _convertEndpointName( endpoint );
+        _schemas.erase( endpoint );
+        const bool foundPUT = _put.erase( endpoint ) != 0;
+        const bool foundGET = _get.erase( endpoint ) != 0;
         return foundPUT || foundGET;
     }
 
-    bool handlePUT( servus::Serializable& serializable )
+    bool handlePUT( const std::string& endpoint,
+                    servus::Serializable& serializable )
     {
         const auto func = [&serializable]( const std::string& json )
             { return serializable.fromJSON( json ); };
-        return handlePUT( serializable.getTypeName(), serializable.getSchema(),
-                          func );
+        return handlePUT( endpoint, serializable.getSchema(), func );
     }
 
-    bool handlePUT( std::string event, const std::string& schema,
+    bool handlePUT( std::string endpoint, const std::string& schema,
                     const PUTPayloadFunc& func )
     {
-        _convertEventName( event );
-        if( event == REQUEST_REGISTRY )
+        _convertEndpointName( endpoint );
+        if( endpoint == REQUEST_REGISTRY )
             ZEROEQTHROW( std::runtime_error(
-                             "'registry' not allowed as event name" ));;
+                             "'registry' not allowed as endpoint name" ));;
 
-        if( _put.count( event ) != 0 )
+        if( _put.count( endpoint ) != 0 )
             return false;
 
-        _put[ event ] = func;
+        _put[ endpoint ] = func;
         {
-            const std::string& exist = _returnSchema( event );
+            const std::string& exist = _returnSchema( endpoint );
             if( exist.empty( ))
-                _schemas[ event ] = schema;
+                _schemas[ endpoint ] = schema;
             else if( schema != exist )
                 ZEROEQTHROW( std::runtime_error(
-                             "Schema registered for event differs: " + event ));
+                       "Schema registered for endpoint differs: " + endpoint ));
         }
         return true;
     }
 
-    bool handleGET( servus::Serializable& serializable )
+    bool handleGET( const std::string& endpoint,
+                    const servus::Serializable& serializable )
     {
         const auto func = [&serializable] { return serializable.toJSON(); };
-        return handleGET( serializable.getTypeName(), serializable.getSchema(),
-                          func );
+        return handleGET( endpoint, serializable.getSchema(), func );
     }
 
-    bool handleGET( std::string event, const std::string& schema,
+    bool handleGET( std::string endpoint, const std::string& schema,
                     const GETFunc& func )
     {
 
-        _convertEventName( event );
-        if( event == REQUEST_REGISTRY )
+        _convertEndpointName( endpoint );
+        if( endpoint == REQUEST_REGISTRY )
             ZEROEQTHROW( std::runtime_error(
-                             "'registry' not allowed as event name" ));
+                             "'registry' not allowed as endpoint name" ));
 
-        if( _get.count( event ) != 0 )
+        if( _get.count( endpoint ) != 0 )
             return false;
 
-        _get[ event ] = func;
+        _get[ endpoint ] = func;
         if( !schema.empty( ))
         {
-            const std::string& exist = _returnSchema( event );
+            const std::string& exist = _returnSchema( endpoint );
             if( exist.empty( ))
-                _schemas[ event ] = schema;
+                _schemas[ endpoint ] = schema;
             else if( schema != exist )
                 ZEROEQTHROW( std::runtime_error(
-                             "Schema registered for event differs: " + event ));
+                       "Schema registered for endpoint differs: " + endpoint ));
 
         }
         return true;
     }
 
-    std::string getSchema( std::string event ) const
+    std::string getSchema( std::string endpoint ) const
     {
-        _convertEventName( event );
-        return _returnSchema( event );
+        _convertEndpointName( endpoint );
+        return _returnSchema( endpoint );
     }
 
     void addSockets( std::vector< detail::Socket >& entries )
@@ -234,7 +245,7 @@ public:
     }
 
 protected:
-    // key stores event lower-case with '/' separators
+    // key stores endpoints lower-case, hyphenated with '/' separators
     typedef std::map< std::string, PUTPayloadFunc > PUTFuncMap;
     typedef std::map< std::string, GETFunc > GETFuncMap;
     typedef std::map< std::string, std::string > SchemaMap;
@@ -254,12 +265,12 @@ protected:
         return inprocURI.str();
     }
 
-    std::string _getTypeName( const std::string& url )
+    std::string _getEndpoint( const std::string& url )
     {
         if( url.empty( ))
             return url;
 
-        return _toLower( url.substr( 1 ));
+        return _camelCaseToHyphenated( url.substr( 1 ));
     }
 
     std::string _returnRegistry() const
@@ -273,9 +284,9 @@ protected:
         return body.toStyledString();
     }
 
-    std::string _returnSchema( const std::string& type ) const
+    std::string _returnSchema( const std::string& endpoint ) const
     {
-        const auto& i = _schemas.find( type );
+        const auto& i = _schemas.find( endpoint );
         return i != _schemas.end() ? i->second : std::string();
     }
 
@@ -283,24 +294,24 @@ protected:
     {
         request.status = HTTPServer::response::ok; // be optimistic
 
-        const std::string& type = _getTypeName( request.url );
-        const auto& i = _get.find( type );
+        const std::string& endpoint = _getEndpoint( request.url );
+        const auto& i = _get.find( endpoint );
         if( i != _get.end( ))
         {
             request.reply = i->second();
             return;
         }
 
-        if( type == REQUEST_REGISTRY )
+        if( endpoint == REQUEST_REGISTRY )
         {
             request.reply = _returnRegistry();
             return;
         }
 
-        if( _endsWithSchema( type ))
+        if( _endsWithSchema( endpoint ))
         {
-            const auto& schema = _returnSchema( type.substr( 0,
-                                                     type.find_last_of( '/' )));
+            const auto& schema = _returnSchema( endpoint.substr( 0,
+                                                 endpoint.find_last_of( '/' )));
             if( !schema.empty( ))
             {
                 request.reply = schema;
@@ -313,8 +324,8 @@ protected:
 
     void _processPUT( HTTPRequest& request )
     {
-        const std::string& type = _getTypeName( request.url );
-        const auto& i = _put.find( type );
+        const std::string& endpoint = _getEndpoint( request.url );
+        const auto& i = _put.find( endpoint );
 
         if( i == _put.end( ))
             request.status = HTTPServer::response::not_found;
@@ -406,59 +417,77 @@ SocketDescriptor Server::getSocketDescriptor() const
     return fd;
 }
 
+bool Server::handle( const std::string& endpoint, servus::Serializable& object )
+{
+    return handlePUT( endpoint, object ) && handleGET( endpoint, object );
+}
+
 bool Server::remove( const servus::Serializable& object )
 {
     return _impl->remove( object );
 }
 
-bool Server::remove( const std::string& event )
+bool Server::remove( const std::string& endpoint )
 {
-    return _impl->remove( event );
+    return _impl->remove( endpoint );
 }
 
 bool Server::handlePUT( servus::Serializable& object )
 {
-    return _impl->handlePUT( object );
+    return _impl->handlePUT( object.getTypeName(), object );
 }
 
-bool Server::handlePUT( const std::string& event, const PUTFunc& func )
+bool Server::handlePUT( const std::string& endpoint,
+                        servus::Serializable& object )
 {
-    return _impl->handlePUT( event, "",
+    return _impl->handlePUT( endpoint, object );
+}
+
+bool Server::handlePUT( const std::string& endpoint, const PUTFunc& func )
+{
+    return _impl->handlePUT( endpoint, "",
                              [func]( const std::string& ) { return func(); } );
 }
 
-bool Server::handlePUT( const std::string& event, const std::string& schema,
+bool Server::handlePUT( const std::string& endpoint, const std::string& schema,
                         const PUTFunc& func )
 {
-    return _impl->handlePUT( event, schema,
+    return _impl->handlePUT( endpoint, schema,
                              [func]( const std::string& ) { return func(); } );
 }
 
-bool Server::handlePUT( const std::string& event, const PUTPayloadFunc& func )
-{
-    return _impl->handlePUT( event, "", func );
-}
-
-bool Server::handlePUT( const std::string& event,const std::string& schema,
+bool Server::handlePUT( const std::string& endpoint,
                         const PUTPayloadFunc& func )
 {
-    return _impl->handlePUT( event, schema, func );
+    return _impl->handlePUT( endpoint, "", func );
 }
 
-bool Server::handleGET( servus::Serializable& object )
+bool Server::handlePUT( const std::string& endpoint,const std::string& schema,
+                        const PUTPayloadFunc& func )
 {
-    return _impl->handleGET( object );
+    return _impl->handlePUT( endpoint, schema, func );
 }
 
-bool Server::handleGET( const std::string& event, const GETFunc& func )
+bool Server::handleGET( const servus::Serializable& object )
 {
-    return _impl->handleGET( event, "", func );
+    return _impl->handleGET( object.getTypeName(), object );
 }
 
-bool Server::handleGET( const std::string& event, const std::string& schema,
+bool Server::handleGET( const std::string& endpoint,
+                        const servus::Serializable& object )
+{
+    return _impl->handleGET( endpoint, object );
+}
+
+bool Server::handleGET( const std::string& endpoint, const GETFunc& func )
+{
+    return _impl->handleGET( endpoint, "", func );
+}
+
+bool Server::handleGET( const std::string& endpoint, const std::string& schema,
                         const GETFunc& func )
 {
-    return _impl->handleGET( event, schema, func );
+    return _impl->handleGET( endpoint, schema, func );
 }
 
 std::string Server::getSchema( const servus::Serializable& object ) const
@@ -466,9 +495,9 @@ std::string Server::getSchema( const servus::Serializable& object ) const
     return _impl->getSchema( object.getTypeName( ));
 }
 
-std::string Server::getSchema( const std::string& event ) const
+std::string Server::getSchema( const std::string& endpoint ) const
 {
-    return _impl->getSchema( event );
+    return _impl->getSchema( endpoint );
 }
 
 void Server::addSockets( std::vector< detail::Socket >& entries )
