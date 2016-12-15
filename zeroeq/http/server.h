@@ -82,11 +82,12 @@ public:
      * Get the underlying socket descriptor.
      *
      * Can be used by client code to be notified when new data is available and
-     * subsequently call receive. Due to implementation details, the socket
-     * notifies on write, not on read.
+     * subsequently call receive.
      *
      * @return the socket descriptor.
      * @throw std::runtime_error if the descriptor could not be obtained.
+     * @note not supported on Windows due to ZMQ limitations, will throw
+     *       std::runtime_error
      */
     ZEROEQHTTP_API SocketDescriptor getSocketDescriptor() const;
     //@}

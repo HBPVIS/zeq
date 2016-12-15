@@ -9,7 +9,20 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake
                               ${CMAKE_SOURCE_DIR}/CMake/common)
 include(GitExternal)
 
-set(ZEROEQ_DEB_DEPENDS libboost-test-dev libzmq3-dev)
+set(ZEROEQ_DEB_DEPENDS
+  libboost-test-dev
+  libzmq3-dev
+  # cppnetlib dependencies
+  libboost-atomic-dev
+  libboost-chrono-dev
+  libboost-date-time-dev
+  libboost-filesystem-dev
+  libboost-program-options-dev
+  libboost-regex-dev
+  libboost-system-dev
+  libboost-thread-dev
+  libssl-dev
+)
 
 include(Common)
 

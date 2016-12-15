@@ -2,6 +2,11 @@
 
 # git master
 
+* [189](https://github.com/HBPVIS/ZeroEQ/pull/189):
+  Fix missing/wrong HTTP server socket notifications from
+  zeroeq::http::Server::getSocketDescriptor(); clients are now guaranteed to be
+  properly notified on read/incoming messages. This feature is not supported on
+  Windows.
 * [188](https://github.com/HBPVIS/ZeroEQ/pull/188):
   * Support custom HTTP URL endpoint for handled Serializables
   * Expose hyphenated URLs for CamelCase event names

@@ -261,7 +261,15 @@ protected:
     std::string _getInprocURI() const
     {
         std::ostringstream inprocURI;
+        // No socket notifier possible on inproc ZMQ sockets,
+        // (https://github.com/zeromq/libzmq/issues/1434).
+        // Use inproc on Windows as ipc is not supported there, which means
+        // we do not support notifications on Windows...
+#ifdef _MSC_VER
         inprocURI << "inproc://#" << static_cast< const void* >( this );
+#else
+        inprocURI << "ipc:///tmp/" << static_cast< const void* >( this );
+#endif
         return inprocURI.str();
     }
 
@@ -407,14 +415,19 @@ const URI& Server::getURI() const
 
 SocketDescriptor Server::getSocketDescriptor() const
 {
+#ifdef _MSC_VER
+    ZEROEQTHROW( std::runtime_error(
+                 std::string( "HTTP server socket descriptor not available" )));
+#else
     SocketDescriptor fd = 0;
     size_t fdLength = sizeof(fd);
     if( ::zmq_getsockopt( _impl->socket, ZMQ_FD, &fd, &fdLength ) == -1 )
     {
         ZEROEQTHROW( std::runtime_error(
-                         std::string( "Could not get socket descriptor'" )));
+                         std::string( "Could not get socket descriptor" )));
     }
     return fd;
+#endif
 }
 
 bool Server::handle( const std::string& endpoint, servus::Serializable& object )

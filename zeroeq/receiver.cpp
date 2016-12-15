@@ -45,7 +45,7 @@ public:
     bool receive( const uint32_t timeout )
     {
         if( timeout == TIMEOUT_INDEFINITE )
-            return _receive();
+            return _blockingReceive();
 
         // Never fully block. Give receivers a chance to update, e.g., to check
         // for new connections from zeroconf (#20)
@@ -82,7 +82,7 @@ private:
 
     Receivers _shared;
 
-    bool _receive()
+    bool _blockingReceive()
     {
         while( true )
         {
@@ -96,51 +96,70 @@ private:
         }
     }
 
-    bool _receive( const uint32_t timeout )
+    bool _receive( uint32_t timeout )
     {
-        std::vector< Socket > sockets;
-        std::deque< size_t > intervals;
-        for( ::zeroeq::Receiver* receiver : _shared )
+        // ZMQ notifications on its sockets is edge-triggered, hence we have
+        // to receive all pending POLLIN events to not 'loose' notifications
+        // from the socket descriptors (c.f. HTTP server).
+        // For reference:
+        // https://funcptr.net/2012/09/10/zeromq---edge-triggered-notification
+        bool haveData = false;
+        do
         {
-            const size_t before = sockets.size();
-            receiver->addSockets( sockets );
-            intervals.push_back( sockets.size() - before );
-        }
-
-        switch( zmq_poll( sockets.data(), int( sockets.size( )),
-                          timeout == TIMEOUT_INDEFINITE ? -1 : timeout ))
-        {
-        case -1: // error
-            ZEROEQTHROW( std::runtime_error( std::string( "Poll error: " ) +
-                                             zmq_strerror( zmq_errno( ))));
-        case 0: // timeout; no events signaled during poll
-            return false;
-
-        default:
-        {
-            // For each event, find the subscriber which supplied the socket and
-            // inform it in case there is data on the socket. We saved #sockets
-            // for each subscriber above and track them down here as we iterate
-            // over all sockets:
-            ReceiversIter i = _shared.begin();
-            size_t interval = intervals.front();
-            intervals.pop_front();
-
-            for( Socket& socket : sockets )
+            std::vector< Socket > sockets;
+            std::deque< size_t > intervals;
+            for( ::zeroeq::Receiver* receiver : _shared )
             {
-                while( interval == 0 || interval-- == 0 )
-                {
-                    ++i;
-                    interval = intervals.front();
-                    intervals.pop_front();
-                }
-
-                if( socket.revents & ZMQ_POLLIN )
-                    (*i)->process( socket, timeout );
+                const size_t before = sockets.size();
+                receiver->addSockets( sockets );
+                intervals.push_back( sockets.size() - before );
             }
-            return true;
+
+            switch( zmq_poll( sockets.data(), int( sockets.size( )), timeout ))
+            {
+            case -1: // error
+                ZEROEQTHROW( std::runtime_error( std::string( "Poll error: " ) +
+                                                 zmq_strerror( zmq_errno( ))));
+            case 0: // timeout; no events signaled during poll
+                return haveData;
+
+            default:
+            {
+                // For each event, find the subscriber which supplied the socket
+                // and inform it in case there is data on the socket. We saved
+                // #sockets for each subscriber above and track them down here
+                // as we iterate over all sockets:
+                ReceiversIter i = _shared.begin();
+                size_t interval = intervals.front();
+                intervals.pop_front();
+
+                // prepare for potential next poll; from now on continue
+                // non-blocking to fullfil edge-triggered contract
+                haveData = false;
+                timeout = 0;
+
+                for( Socket& socket : sockets )
+                {
+                    while( interval == 0 || interval-- == 0 )
+                    {
+                        ++i;
+                        interval = intervals.front();
+                        intervals.pop_front();
+                    }
+
+                    if( socket.revents & ZMQ_POLLIN )
+                    {
+                        (*i)->process( socket, timeout );
+                        haveData = true;
+                    }
+                }
+            }
+            }
         }
-        }
+        while( haveData );
+
+        // if we didn't return earlier, we had at least one socket with data
+        return true;
     }
 };
 }
