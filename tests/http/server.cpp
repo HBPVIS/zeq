@@ -370,6 +370,10 @@ BOOST_AUTO_TEST_CASE(get_event)
     client.checkGET( "/unknown", error404, __LINE__ );
     BOOST_CHECK( !requested );
 
+    // regression check for bugfix #190 (segfault with GET '/')
+    client.checkGET( "/", error404, __LINE__ );
+    BOOST_CHECK( !requested );
+
     client.checkGET( "/test/Foo", _buildResponse( jsonGet ), __LINE__ );
     BOOST_CHECK( requested );
 
