@@ -275,7 +275,7 @@ protected:
 
     std::string _getEndpoint( const std::string& url )
     {
-        if( url.empty( ))
+        if( url.size() < 2 )
             return url;
 
         return _camelCaseToHyphenated( url.substr( 1 ));

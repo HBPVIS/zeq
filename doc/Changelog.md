@@ -2,6 +2,8 @@
 
 # git master
 
+* [190](https://github.com/HBPVIS/ZeroEQ/pull/190):
+  Fix HTTP server segfault when accessing the root element (GET '/').
 * [189](https://github.com/HBPVIS/ZeroEQ/pull/189):
   Fix missing/wrong HTTP server socket notifications from
   zeroeq::http::Server::getSocketDescriptor(); clients are now guaranteed to be
