@@ -27,6 +27,9 @@ namespace
 // Inspiration: https://gist.github.com/rodamber/2558e25d4d8f6b9f2ffdf7bd49471340
 std::string _camelCaseToHyphenated( std::string camelCase )
 {
+    if( camelCase.empty( ))
+        return camelCase;
+
     std::string str( 1, tolower(camelCase[0]) );
     for( auto it = camelCase.begin() + 1; it != camelCase.end(); ++it )
     {
@@ -151,6 +154,9 @@ public:
     bool handlePUT( std::string endpoint, const std::string& schema,
                     const PUTPayloadFunc& func )
     {
+        if( endpoint.empty( ))
+            ZEROEQTHROW( std::runtime_error( "endpoint name cannot be empty" ));
+
         _convertEndpointName( endpoint );
         if( endpoint == REQUEST_REGISTRY )
             ZEROEQTHROW( std::runtime_error(
@@ -181,6 +187,8 @@ public:
     bool handleGET( std::string endpoint, const std::string& schema,
                     const GETFunc& func )
     {
+        if( endpoint.empty( ))
+            ZEROEQTHROW( std::runtime_error( "endpoint name cannot be empty" ));
 
         _convertEndpointName( endpoint );
         if( endpoint == REQUEST_REGISTRY )

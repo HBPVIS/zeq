@@ -639,6 +639,13 @@ BOOST_AUTO_TEST_CASE(event_registry_name)
                                 zeroeq::PUTFunc( [] { return true; } )),
                        std::runtime_error );
 
+    BOOST_CHECK_THROW( server.handleGET( "",
+                               zeroeq::GETFunc( [] { return std::string(); } )),
+                       std::runtime_error );
+    BOOST_CHECK_THROW( server.handlePUT( "",
+                                zeroeq::PUTFunc( [] { return true; } )),
+                       std::runtime_error );
+
     BOOST_CHECK( server.handleGET( "foo/registry",
                        zeroeq::GETFunc( [] { return std::string( "bar" ); } )));
     BOOST_CHECK( server.handlePUT( "foo/registry",

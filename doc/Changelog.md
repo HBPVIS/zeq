@@ -2,6 +2,9 @@
 
 # git master
 
+* [192](https://github.com/HBPVIS/ZeroEQ/pull/192):
+  Fix HTTP server segfault when registering an empty endpoint, throw an
+  exception instead.
 * [190](https://github.com/HBPVIS/ZeroEQ/pull/190):
   Fix HTTP server segfault when accessing the root element (GET '/').
 * [189](https://github.com/HBPVIS/ZeroEQ/pull/189):
