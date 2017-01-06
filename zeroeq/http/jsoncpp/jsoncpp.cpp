@@ -92,7 +92,13 @@ license you like.
 #ifndef LIB_JSONCPP_JSON_TOOL_H_INCLUDED
 #define LIB_JSONCPP_JSON_TOOL_H_INCLUDED
 
-#ifndef NO_LOCALE_SUPPORT
+
+// Also support old flag NO_LOCALE_SUPPORT
+#ifdef NO_LOCALE_SUPPORT
+#define JSONCPP_NO_LOCALE_SUPPORT
+#endif
+
+#ifndef JSONCPP_NO_LOCALE_SUPPORT
 #include <clocale>
 #endif
 
@@ -104,7 +110,7 @@ license you like.
 
 namespace Json {
 static char getDecimalPoint() {
-#ifdef NO_LOCALE_SUPPORT
+#ifdef JSONCPP_NO_LOCALE_SUPPORT
   return '\0';
 #else
   struct lconv* lc = localeconv();
@@ -210,6 +216,7 @@ static inline void fixNumericLocaleInput(char* begin, char* end) {
 // //////////////////////////////////////////////////////////////////////
 
 // Copyright 2007-2011 Baptiste Lepilleur
+// Copyright (C) 2016 InfoTeCS JSC. All rights reserved.
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 // See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
@@ -255,8 +262,12 @@ static inline void fixNumericLocaleInput(char* begin, char* end) {
 #pragma warning(disable : 4996)
 #endif
 
-static int const stackLimit_g = 1000;
-static int       stackDepth_g = 0;  // see readValue()
+// Define JSONCPP_DEPRECATED_STACK_LIMIT as an appropriate integer at compile time to change the stack limit
+#if !defined(JSONCPP_DEPRECATED_STACK_LIMIT)
+#define JSONCPP_DEPRECATED_STACK_LIMIT 1000
+#endif
+
+static size_t const stackLimit_g = JSONCPP_DEPRECATED_STACK_LIMIT; // see readValue()
 
 namespace Json {
 
@@ -349,7 +360,6 @@ bool Reader::parse(const char* beginDoc,
     nodes_.pop();
   nodes_.push(&root);
 
-  stackDepth_g = 0;  // Yes, this is bad coding, but options are limited.
   bool successful = readValue();
   Token token;
   skipCommentTokens(token);
@@ -372,12 +382,10 @@ bool Reader::parse(const char* beginDoc,
 }
 
 bool Reader::readValue() {
-  // This is a non-reentrant way to support a stackLimit. Terrible!
-  // But this deprecated class has a security problem: Bad input can
-  // cause a seg-fault. This seems like a fair, binary-compatible way
-  // to prevent the problem.
-  if (stackDepth_g >= stackLimit_g) throwRuntimeError("Exceeded stackLimit in readValue().");
-  ++stackDepth_g;
+  // readValue() may call itself only if it calls readObject() or ReadArray().
+  // These methods execute nodes_.push() just before and nodes_.pop)() just after calling readValue(). 
+  // parse() executes one nodes_.push(), so > instead of >=.
+  if (nodes_.size() > stackLimit_g) throwRuntimeError("Exceeded stackLimit in readValue().");
 
   Token token;
   skipCommentTokens(token);
@@ -451,7 +459,6 @@ bool Reader::readValue() {
     lastValue_ = &currentValue();
   }
 
-  --stackDepth_g;
   return successful;
 }
 
@@ -1239,7 +1246,6 @@ private:
   Location lastValueEnd_;
   Value* lastValue_;
   JSONCPP_STRING commentsBefore_;
-  int stackDepth_;
 
   OurFeatures const features_;
   bool collectComments_;
@@ -1250,7 +1256,6 @@ private:
 OurReader::OurReader(OurFeatures const& features)
     : errors_(), document_(), begin_(), end_(), current_(), lastValueEnd_(),
       lastValue_(), commentsBefore_(),
-      stackDepth_(0),
       features_(features), collectComments_() {
 }
 
@@ -1274,7 +1279,6 @@ bool OurReader::parse(const char* beginDoc,
     nodes_.pop();
   nodes_.push(&root);
 
-  stackDepth_ = 0;
   bool successful = readValue();
   Token token;
   skipCommentTokens(token);
@@ -1303,8 +1307,8 @@ bool OurReader::parse(const char* beginDoc,
 }
 
 bool OurReader::readValue() {
-  if (stackDepth_ >= features_.stackLimit_) throwRuntimeError("Exceeded stackLimit in readValue().");
-  ++stackDepth_;
+  //  To preserve the old behaviour we cast size_t to int.
+  if (static_cast<int>(nodes_.size()) > features_.stackLimit_) throwRuntimeError("Exceeded stackLimit in readValue().");
   Token token;
   skipCommentTokens(token);
   bool successful = true;
@@ -1401,7 +1405,6 @@ bool OurReader::readValue() {
     lastValue_ = &currentValue();
   }
 
-  --stackDepth_;
   return successful;
 }
 
@@ -2638,9 +2641,9 @@ namespace Json {
 Exception::Exception(JSONCPP_STRING const& msg)
   : msg_(msg)
 {}
-Exception::~Exception() throw()
+Exception::~Exception() JSONCPP_NOEXCEPT
 {}
-char const* Exception::what() const throw()
+char const* Exception::what() const JSONCPP_NOEXCEPT
 {
   return msg_.c_str();
 }
@@ -2748,7 +2751,7 @@ bool Value::CZString::operator<(const CZString& other) const {
   // Assume both are strings.
   unsigned this_len = this->storage_.length_;
   unsigned other_len = other.storage_.length_;
-  unsigned min_len = std::min(this_len, other_len);
+  unsigned min_len = std::min<unsigned>(this_len, other_len);
   JSON_ASSERT(this->cstr_ && other.cstr_);
   int comp = memcmp(this->cstr_, other.cstr_, min_len);
   if (comp < 0) return true;
@@ -2788,7 +2791,7 @@ bool Value::CZString::isStaticString() const { return storage_.policy_ == noDupl
  * This optimization is used in ValueInternalMap fast allocator.
  */
 Value::Value(ValueType vtype) {
-  static char const empty[] = "";
+  static char const emptyString[] = "";
   initBasic(vtype);
   switch (vtype) {
   case nullValue:
@@ -2802,7 +2805,7 @@ Value::Value(ValueType vtype) {
     break;
   case stringValue:
     // allocated_ == false, so this is safe.
-    value_.string_ = const_cast<char*>(static_cast<char const*>(empty));
+    value_.string_ = const_cast<char*>(static_cast<char const*>(emptyString));
     break;
   case arrayValue:
   case objectValue:
@@ -3011,7 +3014,7 @@ bool Value::operator<(const Value& other) const {
     char const* other_str;
     decodePrefixedString(this->allocated_, this->value_.string_, &this_len, &this_str);
     decodePrefixedString(other.allocated_, other.value_.string_, &other_len, &other_str);
-    unsigned min_len = std::min(this_len, other_len);
+    unsigned min_len = std::min<unsigned>(this_len, other_len);
     JSON_ASSERT(this_str && other_str);
     int comp = memcmp(this_str, other_str, min_len);
     if (comp < 0) return true;
@@ -3724,7 +3727,11 @@ bool Value::isBool() const { return type_ == booleanValue; }
 bool Value::isInt() const {
   switch (type_) {
   case intValue:
+#if defined(JSON_HAS_INT64)
     return value_.int_ >= minInt && value_.int_ <= maxInt;
+#else
+    return true;
+#endif
   case uintValue:
     return value_.uint_ <= UInt(maxInt);
   case realValue:
@@ -3739,9 +3746,17 @@ bool Value::isInt() const {
 bool Value::isUInt() const {
   switch (type_) {
   case intValue:
+#if defined(JSON_HAS_INT64)
     return value_.int_ >= 0 && LargestUInt(value_.int_) <= LargestUInt(maxUInt);
+#else
+    return value_.int_ >= 0;
+#endif
   case uintValue:
+#if defined(JSON_HAS_INT64)
     return value_.uint_ <= maxUInt;
+#else
+    return true;
+#endif
   case realValue:
     return value_.real_ >= 0 && value_.real_ <= maxUInt &&
            IsIntegral(value_.real_);
@@ -3799,9 +3814,9 @@ bool Value::isIntegral() const {
 #endif
 }
 
-bool Value::isDouble() const { return type_ == realValue || isIntegral(); }
+bool Value::isDouble() const { return type_ == intValue || type_ == uintValue || type_ == realValue; }
 
-bool Value::isNumeric() const { return isIntegral() || isDouble(); }
+bool Value::isNumeric() const { return isDouble(); }
 
 bool Value::isString() const { return type_ == stringValue; }
 
@@ -4202,7 +4217,7 @@ namespace {
 JSONCPP_STRING valueToString(double value, bool useSpecialFloats, unsigned int precision) {
   // Allocate a buffer that is more than large enough to store the 16 digits of
   // precision requested below.
-  char buffer[32];
+  char buffer[36];
   int len = -1;
 
   char formatString[6];
@@ -4213,6 +4228,12 @@ JSONCPP_STRING valueToString(double value, bool useSpecialFloats, unsigned int p
   // concepts of reals and integers.
   if (isfinite(value)) {
     len = snprintf(buffer, sizeof(buffer), formatString, value);
+    
+    // try to ensure we preserve the fact that this was given to us as a double on input
+    if (!strstr(buffer, ".") && !strstr(buffer, "e")) {
+      strcat(buffer, ".0");
+    }
+
   } else {
     // IEEE standard states that NaN values will not compare to themselves
     if (value != value) {
