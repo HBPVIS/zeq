@@ -1,4 +1,4 @@
-# Copyright (c) HBP 2014-2016 Daniel.Nachbaur@epfl.ch
+# Copyright (c) HBP 2014-2017 Daniel.Nachbaur@epfl.ch
 
 list(APPEND CPPCHECK_EXTRA_ARGS
   --suppress=*:${CMAKE_CURRENT_BINARY_DIR}/*_generated.h)
@@ -31,7 +31,7 @@ set(ZEROEQ_SOURCES
   uri.cpp)
 
 set(ZEROEQ_LINK_LIBRARIES PUBLIC Servus
-                          PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${LIBZMQ_LIBRARIES})
+                          PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${libzmq_LIBRARIES})
 if(MSVC)
   list(APPEND ZEROEQ_LINK_LIBRARIES Ws2_32)
 endif()

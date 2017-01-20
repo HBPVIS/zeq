@@ -1,4 +1,4 @@
-# Copyright (c) HBP 2014-2016 Daniel.Nachbaur@epfl.ch
+# Copyright (c) HBP 2014-2017 Daniel.Nachbaur@epfl.ch
 #                             Stefan.Eilemann@epfl.ch
 
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
@@ -40,7 +40,7 @@ add_subproject(cppnetlib)
 
 common_find_package(Boost COMPONENTS unit_test_framework)
 common_find_package(cppnetlib SYSTEM NO_DEFAULT_PATH)
-common_find_package(libzmq REQUIRED)
+common_find_package(libzmq 4 REQUIRED)
 common_find_package(Servus REQUIRED)
 common_find_package(Threads REQUIRED)
 common_find_package_post()

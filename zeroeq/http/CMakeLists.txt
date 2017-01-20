@@ -13,7 +13,7 @@ set(ZEROEQHTTP_SOURCES
   jsoncpp/jsoncpp.cpp
 )
 set(ZEROEQHTTP_LINK_LIBRARIES PUBLIC ZeroEQ PRIVATE ${CPPNETLIB_LIBRARIES}
-                                                    ${LIBZMQ_LIBRARIES})
+  ${libzmq_LIBRARIES})
 
 if(MSVC)
   list(APPEND ZEROEQHTTP_LINK_LIBRARIES Ws2_32)
