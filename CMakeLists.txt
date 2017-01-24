@@ -7,6 +7,10 @@ set(ZeroEQ_VERSION_ABI 8)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake
                               ${CMAKE_SOURCE_DIR}/CMake/common)
+
+
+option(ZEROEQ_USE_EXTERNAL_CPPNETLIB "For ZeroEQ to use cppnetlib as external dependency" OFF)
+
 include(GitExternal)
 
 set(ZEROEQ_DEB_DEPENDS
@@ -32,14 +36,24 @@ set(ZEROEQ_MAINTAINER "Human Brain Project <HBPVis@googlegroups.com>")
 set(ZEROEQ_LICENSE LGPL)
 set(ZEROEQ_DEPENDENT_LIBRARIES Servus)
 
+
+if(NOT ZEROEQ_USE_EXTERNAL_CPPNETLIB)
 # enforce cloning our own version of cppnetlib and skip finding a potentially
 # installed system package
 git_external(${COMMON_SOURCE_DIR}/cppnetlib
   https://github.com/BlueBrain/cpp-netlib 0.11-bbp)
 add_subproject(cppnetlib)
 
-common_find_package(Boost COMPONENTS unit_test_framework)
+
 common_find_package(cppnetlib SYSTEM NO_DEFAULT_PATH)
+
+else()
+
+common_find_package(cppnetlib REQUIRED)
+
+endif()
+
+common_find_package(Boost COMPONENTS unit_test_framework)
 common_find_package(libzmq 4 REQUIRED)
 common_find_package(Servus REQUIRED)
 common_find_package(Threads REQUIRED)
