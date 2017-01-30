@@ -5,7 +5,4 @@ release/
 Makefile
 CMakeLists.txt.user*
 CMake/common/
-___*
 Servus/
-FlatBuffers/
-httpxx/
