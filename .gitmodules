@@ -1,4 +1,4 @@
 [submodule "cppnetlib"]
 	path = cppnetlib
 	url = https://github.com/BlueBrain/cpp-netlib
-	branch = 0.11-bbp
+	branch = 0.13-release

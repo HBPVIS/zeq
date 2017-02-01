@@ -1,4 +1,4 @@
-# Copyright (c) HBP 2014-2016 Daniel.Nachbaur@epfl.ch
+# Copyright (c) HBP 2014-2017 Daniel.Nachbaur@epfl.ch
 
 set(ZEROEQHTTP_PUBLIC_HEADERS
   server.h
@@ -9,6 +9,7 @@ set(ZEROEQHTTP_HEADERS
   jsoncpp/json/json-forwards.h
 )
 set(ZEROEQHTTP_SOURCES
+  requestHandler.cpp
   server.cpp
   jsoncpp/jsoncpp.cpp
 )

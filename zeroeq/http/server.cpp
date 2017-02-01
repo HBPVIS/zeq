@@ -1,7 +1,7 @@
 
-/* Copyright (c) 2016, Human Brain Project
- *                     Stefan.Eilemann@epfl.ch
- *                     Daniel.Nachbaur@epfl.ch
+/* Copyright (c) 2016-2017, Human Brain Project
+ *                          Stefan.Eilemann@epfl.ch
+ *                          Daniel.Nachbaur@epfl.ch
  */
 
 #include "server.h"
@@ -94,6 +94,7 @@ public:
                        address( uri_.getHost() == "*" ? "0.0.0.0"
                                                       : uri_.getHost( )).
                        port( std::to_string( int(uri_.getPort( )))).
+                       protocol_family( HTTPServer::options::ipv4 ).
                        reuse_address( true ) )
     {
         if( ::zmq_bind( socket, _getInprocURI().c_str( )) == -1 )
@@ -105,8 +106,18 @@ public:
         try
         {
             _httpServer.listen();
-            _httpThread.reset( new std::thread(
-                               std::bind( &HTTPServer::run, &_httpServer )));
+            _httpThread.reset( new std::thread( [&]
+            {
+                try
+                {
+                    _httpServer.run();
+                }
+                catch( const std::exception& e )
+                {
+                    ZEROEQERROR << "Error during HTTPServer::run(): "
+                                << e.what() << std::endl;
+                }
+            }));
         }
         catch( const std::exception& e )
         {
@@ -308,7 +319,7 @@ protected:
 
     void _processGET( HTTPRequest& request )
     {
-        request.status = HTTPServer::response::ok; // be optimistic
+        request.status = HTTPServer::connection::ok; // be optimistic
 
         const std::string& endpoint = _getEndpoint( request.url );
         const auto& i = _get.find( endpoint );
@@ -335,7 +346,7 @@ protected:
             }
         }
 
-        request.status = HTTPServer::response::not_found;
+        request.status = HTTPServer::connection::not_found;
     }
 
     void _processPUT( HTTPRequest& request )
@@ -344,13 +355,13 @@ protected:
         const auto& i = _put.find( endpoint );
 
         if( i == _put.end( ))
-            request.status = HTTPServer::response::not_found;
+            request.status = HTTPServer::connection::not_found;
         else
         {
             if( i->second( request.request ))
-                request.status = HTTPServer::response::ok;
+                request.status = HTTPServer::connection::ok;
             else
-                request.status = HTTPServer::response::bad_request;
+                request.status = HTTPServer::connection::bad_request;
         }
     }
 };

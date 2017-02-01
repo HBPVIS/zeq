@@ -32,6 +32,11 @@ set(ZEROEQ_MAINTAINER "Human Brain Project <HBPVis@googlegroups.com>")
 set(ZEROEQ_LICENSE LGPL)
 set(ZEROEQ_DEPENDENT_LIBRARIES Servus)
 
+if(NOT MSVC)
+  option(CPP-NETLIB_BUILD_SHARED_LIBS "Build cpp-netlib as shared libraries." ON)
+endif()
+option(CPP-NETLIB_BUILD_TESTS "Build the cpp-netlib project tests." OFF)
+option(CPP-NETLIB_BUILD_EXAMPLES "Build the cpp-netlib project examples." OFF)
 add_subproject(cppnetlib ${PROJECT_SOURCE_DIR}/cppnetlib) # from .gitmodules
 
 common_find_package(Boost COMPONENTS unit_test_framework)

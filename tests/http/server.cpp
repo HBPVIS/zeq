@@ -1,7 +1,7 @@
 
-/* Copyright (c) 2016, Human Brain Project
- *                     Stefan.Eilemann@epfl.ch
- *                     Daniel.Nachbaur@epfl.ch
+/* Copyright (c) 2016-2017, Human Brain Project
+ *                          Stefan.Eilemann@epfl.ch
+ *                          Daniel.Nachbaur@epfl.ch
  */
 
 #define BOOST_TEST_MODULE http_server
@@ -26,55 +26,21 @@ using HTTPClient =
 
 using ServerReponse = http::basic_response<http::tags::http_server>;
 
-void _addCorsHeaders( HTTPClient::response& response )
+struct Response
 {
-    response.add_header( std::make_pair( "Access-Control-Allow-Headers",
-                                         "Content-Type" ));
-    response.add_header( std::make_pair( "Access-Control-Allow-Methods",
-                                         "GET,PUT,OPTIONS" ));
-    response.add_header( std::make_pair( "Access-Control-Allow-Origin",
-                                         "*" ));
+    const ServerReponse::status_type status;
+    const std::string body;
+};
+
+Response _buildResponse( const std::string& body = std::string( ))
+{
+    return { ServerReponse::ok, body };
 }
 
-HTTPClient::response _buildResponse( const std::string& body = std::string( ))
-{
-    HTTPClient::response response;
-    response.status( ServerReponse::ok );
-    _addCorsHeaders( response );
-    if( !body.empty( ))
-    {
-        response.add_header( std::make_pair( "Content-Length",
-                                             std::to_string( body.size( ))));
-    }
-    response.body( body );
-    return response;
-}
-
-HTTPClient::response _buildError( const ServerReponse::status_type status,
-                                  const bool cors = true )
-{
-    HTTPClient::response response;
-    response.status( status );
-    if( cors )
-        _addCorsHeaders( response );
-    const auto stockReply = ServerReponse::stock_reply( status );
-    for( const auto& i : stockReply.headers )
-        response.add_header( std::make_pair( i.name, i.value ));
-    response.body( stockReply.content );
-    return response;
-}
-
-const HTTPClient::response response200( _buildResponse( ));
-const HTTPClient::response error400( _buildError( ServerReponse::bad_request ));
-// bad_request for PUT with empty body is handled by cppnetlib directly, so
-// no CORS headers there...
-const HTTPClient::response error400_nocors(
-        _buildError( ServerReponse::bad_request, false ));
-const HTTPClient::response error404( _buildError( ServerReponse::not_found ));
-const HTTPClient::response error405(
-        _buildError( ServerReponse::method_not_allowed ));
-const HTTPClient::response error411(
-        _buildError( ServerReponse::length_required ));
+const Response response200{ ServerReponse::ok, "" };
+const Response error400{ ServerReponse::bad_request, "" };
+const Response error404{ ServerReponse::not_found, "" };
+const Response error405{ ServerReponse::method_not_allowed, "" };
 
 const std::string jsonGet( "Not JSON, just want to see that the is data a-ok" );
 const std::string jsonPut( "See what my stepbrother jsonGet says" );
@@ -126,19 +92,19 @@ public:
     }
 
     void checkGET( const std::string& request,
-                   const HTTPClient::response& expected, const int line )
+                   const Response& expected, const int line )
     {
         _checkImpl( Method::GET, request, "", expected, line );
     }
 
     void checkPUT( const std::string& request, const std::string& data,
-                   const HTTPClient::response& expected, const int line )
+                   const Response& expected, const int line )
     {
         _checkImpl( Method::PUT, request, data, expected, line );
     }
 
     void checkPOST( const std::string& request, const std::string& data,
-                   const HTTPClient::response& expected, const int line )
+                    const Response& expected, const int line )
     {
         _checkImpl( Method::POST, request, data, expected, line );
     }
@@ -161,7 +127,7 @@ private:
 
     void _checkImpl( const Method method, const std::string& request,
                      const std::string& data,
-                     const HTTPClient::response& expected, const int line )
+                     const Response& expected, const int line )
     {
         HTTPClient::request request_( _baseURL + request );
 
@@ -179,18 +145,48 @@ private:
             break;
         }
 
-        BOOST_CHECK_EQUAL( response.headers().size(),
-                           expected.headers().size( ));
-        auto i = response.headers().begin();
-        auto j = expected.headers().begin();
-        for( ; i != response.headers().end(); ++i, ++j )
+        BOOST_CHECK_MESSAGE( status( response ) == expected.status,
+                             "At l." + std::to_string( line ) + ": " +
+                             std::to_string( status( response ) )+ " != " +
+                             std::to_string( int(expected.status) )  );
+
+        std::map< std::string, std::string > expectedHeaders;
+        expectedHeaders.insert( { "Access-Control-Allow-Headers",
+                                  "Content-Type" });
+        expectedHeaders.insert( { "Access-Control-Allow-Methods",
+                                  "GET,PUT,OPTIONS" });
+        expectedHeaders.insert( { "Access-Control-Allow-Origin", "*" });
+
+        if( !expected.body.empty( ))
+        {
+            expectedHeaders.insert( std::make_pair( "Content-Length",
+                               std::to_string( expected.body.size( ))));
+        }
+
+        const auto& responseHeaders = headers( response );
+        const size_t responseHeaderSize =
+                std::distance( responseHeaders.begin(), responseHeaders.end( ));
+        BOOST_REQUIRE_MESSAGE( responseHeaderSize == expectedHeaders.size(),
+                               "At l." + std::to_string( line ) + ": " +
+                               std::to_string( responseHeaderSize )+ " != " +
+                               std::to_string( expectedHeaders.size( )));
+        auto i = responseHeaders.begin();
+        auto j = expectedHeaders.begin();
+        for( ; i != responseHeaders.end(); ++i, ++j )
         {
             BOOST_CHECK_EQUAL( i->first, j->first );
             BOOST_CHECK_EQUAL( i->second, j->second );
         }
-        BOOST_CHECK_MESSAGE( response.body() == expected.body(),
+
+        const auto& responseBody = body( response );
+        auto responseBodyString = static_cast< std::string >( responseBody );
+        // weird stuff here: cppnetlib client response body string is
+        // duplicated, hence take first half for comparison
+        responseBodyString.erase( responseBodyString.size() / 2,
+                                  responseBodyString.size() / 2 );
+        BOOST_CHECK_MESSAGE( responseBodyString == expected.body,
                              "At l." + std::to_string( line ) + ": " +
-                             response.body() + " != " + expected.body( ));
+                             responseBodyString + " != " + expected.body );
     }
 };
 
@@ -414,7 +410,7 @@ BOOST_AUTO_TEST_CASE(put_serializable)
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
     Client client( server.getURI( ));
-    client.checkPUT( "/test/Foo", "", error400_nocors, __LINE__ );
+    client.checkPUT( "/test/Foo", "", error400, __LINE__ );
     client.checkPUT( "/test/Foo", "Foo", error400, __LINE__ );
     client.checkPUT( "/test/Bar", jsonPut, error404, __LINE__ );
     BOOST_CHECK( !foo.getNotified( ));
@@ -441,7 +437,7 @@ BOOST_AUTO_TEST_CASE(put_event)
     std::thread thread( [&]() { while( running ) server.receive( 100 ); });
 
     Client client( server.getURI( ));
-    client.checkPUT( "/foo", "", error400_nocors, __LINE__ );
+    client.checkPUT( "/foo", "", error400, __LINE__ );
     client.checkPUT( "/foo", "Foo", error400, __LINE__ );
     client.checkPUT( "/test/Bar", jsonPut, error404, __LINE__ );
     client.checkPUT( "/foo", jsonPut, response200, __LINE__ );
@@ -701,7 +697,7 @@ BOOST_AUTO_TEST_CASE(multiple_event_name_for_same_object)
     client.checkPUT( "/test/camel-bar", jsonPut, response200, __LINE__ );
     BOOST_CHECK( foo.getNotified( ));
 
-    client.checkPUT( "/test/foo", "", error400_nocors, __LINE__ );
+    client.checkPUT( "/test/foo", "", error404, __LINE__ );
 
     foo.setNotified( false );
 
