@@ -18,10 +18,12 @@ it usable as a general-purpose REST interface.
 
 None, cppnetlib 0.13 already offers the required functionality.
 
+# Proposition #1
+
 ## API
 
-To fullfill the abovementioned requirements with minimal API changes, we propose
-a generic interface as follows:
+To fullfill the requirements with minimal API changes, we propose a generic
+interface as follows:
 
     namespace zeroeq
     {
@@ -149,7 +151,163 @@ In server.cpp, all existing handle*() functions must be adapted to wrap the
 response data as ready futures. Additional maps must be added for the POST,
 PATCH and DELETE actions.
 
-};
+# Proposition #2
+
+This proposition makes use of cppnetlib's internal thread pool to execute the
+asynchronous functions, removing some complexity from user code.
+
+## API
+
+Same enums and Response struct as in proposition #1:
+
+    namespace zeroeq
+    {
+    namespace http
+    {
+
+    /** HTTP REST callback with payload, returning an http Response. */
+    using RESTFunc = std::function<Response(const std::string&)>;
+
+    /** Returned by a RESTPathFunc. Stores the actual RESTFunc to execute
+        and a boolean indicating if it must be run asynchronously. */
+    struct PathResponse
+    {
+        RESTFunc func;
+        bool async = false;
+    };
+
+    /** HTTP REST callback with path + payload, returning a PathResponse.
+        "path" provides the url part after the endpoint, for instance:
+        endpoint: "api/windows" | url: "api/windows/567/thumbnail" ->
+        path: "567/thumbnail"
+    */
+    using RESTPathFunc = std::function<PathResponse(const std::string&,
+                                                    const std::string&)>;
+
+    class Server
+    {
+    public:
+        /** ... */
+
+        /** Handle a single action on a given endpoint. */
+        void handle(Verb action, const std::string& endpoint, RESTFunc func,
+                    bool async);
+
+        /** Handle all urls starting with the given endpoint. */
+        void handlePath(Verb action, const std::string& endpoint,
+                        RESTPathFunc func);
+
+        /** ... */
+    }
+    }
+    }
+
+
+## Examples
+
+This example is similar to the one in proposition #1. It explores the handling
+of path requests in a synchronous or asynchronous manner depending on the url.
+
+    using namespace zeroeq;
+    http::Server server{ /** ... */ };
+
+    // simplified window collection for the example
+    std::set<std::string> windows{"1234", "567"};
+
+    // example path: "", "567/thumbnail", "567/wrongproperty"
+    const auto getWindowInfo = [&](const std::string& path, const std::string&)
+    {
+        // GET "api/windows" -> list all windows
+        if (path.empty())
+        {
+            const auto func = [&](const std::string&)
+            {
+                auto response = http::Response;
+                response.contentType = "application/json";
+                response.payload = toJsonString(windows);
+                return response;
+            }
+            return PathResponse{func, false};
+        }
+
+        const auto input = split(path,'/');
+        const auto& windowId = input[0];
+        const auto& property = input.size() == 2 ? input[1] : std::string();
+
+        if (!windows.count(windowId))
+        {
+            return PathResponse{[](const std::string&)
+                      { return http::Response{http::Code::NOT_FOUND}; }, false};
+        }
+        if (property == "thumbnail")
+        {
+            const auto makeThumbnail = [windowId](const std::string&)
+            {
+                auto response = http::Response{};
+                response.contentType = "image/jpeg";
+                response.payload = doTheHeavyWork(windowId);
+                return response;
+            };
+            return PathResponse{makeThumbnail, true};
+        }
+        return PathResponse{[](const std::string&)
+                { return http::Response{http::Code::NOT_IMPLEMENTED}; }, false};
+    }
+    server.handlePath(http::Verb::GET, "api/windows", getWindowInfo);
+
+    // Here we use a generic endpoint for window close operations. "path"
+    // contains the url part after the endpoint: "api/windows/567" -> "567"
+    const auto closeWindow = [&](const std::string& path)
+    {
+        if (!windows.count(path))
+            return http::Response{http::Code::NOT_FOUND};
+
+        server.remove("api/windows/"+path+"/thumbnail");
+        windows.erase(path);
+        return http::Response{http::Code::OK};
+    };
+    const auto deleteWindow = [&](const std::string& path, const std::string&)
+    {
+        const auto func = [path](const std::string&){ closeWindow(path); };
+        return PathResponse{func, false};
+    };
+    server.handlePath(http::Verb::DELETE, "api/windows", deleteWindow);
+
+    // This function uses POST to open a new window and return its location.
+    const auto openWindow = [&](const std::string& request)
+    {
+        if (!windows.insert(request))
+            return http::Response{http::Code::NO_CONTENT};
+
+        auto response = http::Response();
+        response.code = http::Code::CREATED;
+        response.headers[http::Header::LOCATION] = "api/windows/"+request;
+        return response;
+    };
+    server.handle(http::Verb::POST, "api/windows", openWindow, false);
+
+## Implementation
+
+    In requestHandler.h, the struct HTTPRequest needs to be changed from:
+
+        // output from zeroeq::http::Server
+        HTTPServer::connection::status_t status;
+        std::string reply;
+
+    to
+
+        // output from zeroeq::http::Server
+        Response response;
+        RESTFunc asyncResponse;
+
+    In requestHandler.cpp, ConnectionHandler::_handleRequest must do:
+    if (httpRequest.asyncResponse)
+        response = httpRequest.asyncResponse();
+
+    In server.cpp, additional maps must be added for the POST, PATCH and DELETE
+    actions. Each map must also store a boolean indicating whether the function
+    should be called synchronusly or asynchronously.
+    Adding support for handlePath() should be straighforward.
 
 ## Issues
 
