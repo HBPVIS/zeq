@@ -115,7 +115,7 @@ private:
     void _handleChunk( HTTPServer::connection::input_range range,
                        const boost::system::error_code error, const size_t size,
                        HTTPServer::connection_ptr connection,
-                       const Method method )
+                       const Method method_ )
     {
         if( error )
         {
@@ -127,9 +127,9 @@ private:
         _body.append( std::begin( range ), size );
         _size -= size;
         if( _size > 0 )
-            _readChunk( connection, method );
+            _readChunk( connection, method_ );
         else
-            _handleRequest( method, connection );
+            _handleRequest( method_, connection );
     }
 
     void _handleRequest( const Method method,
