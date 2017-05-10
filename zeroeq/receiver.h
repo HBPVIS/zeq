@@ -11,13 +11,22 @@
 
 #include <memory>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace zeroeq
 {
-namespace detail { class Receiver; }
-namespace connection { namespace detail{ class Broker; }}
+namespace detail
+{
+class Receiver;
+}
+namespace connection
+{
+namespace detail
+{
+class Broker;
+}
+}
 
 /**
  * Base class for entities receiving data.
@@ -44,7 +53,7 @@ public:
      *
      * @param shared another receiver to form a simultaneous receive group with.
      */
-    ZEROEQ_API explicit Receiver( Receiver& shared );
+    ZEROEQ_API explicit Receiver(Receiver& shared);
 
     /** Destroy this receiver. */
     ZEROEQ_API virtual ~Receiver();
@@ -59,13 +68,13 @@ public:
      * @return true if at least one event was received
      * @throw std::runtime_error when polling failed.
      */
-    ZEROEQ_API bool receive( const uint32_t timeout = TIMEOUT_INDEFINITE );
+    ZEROEQ_API bool receive(const uint32_t timeout = TIMEOUT_INDEFINITE);
 
 protected:
     friend class detail::Receiver;
 
     /** Add this receiver's sockets to the given list */
-    virtual void addSockets( std::vector< detail::Socket >& entries ) = 0;
+    virtual void addSockets(std::vector<detail::Socket>& entries) = 0;
 
     /**
      * Process data on a signalled socket.
@@ -73,7 +82,7 @@ protected:
      * @param socket the socket provided from addSockets().
      * @param timeout user provided timeout from receive().
      */
-    virtual void process( detail::Socket& socket, uint32_t timeout ) = 0;
+    virtual void process(detail::Socket& socket, uint32_t timeout) = 0;
 
     /**
      * Update the internal connection list.
@@ -82,23 +91,21 @@ protected:
      * their list of sockets.
      */
     virtual void update() {}
-
     /**
      * Add the given connection to the list of receiving sockets.
      *
      * @param uri the ZeroMQ address to connect to.
      */
-    virtual void addConnection( const std::string& uri ) = 0;
+    virtual void addConnection(const std::string& uri) = 0;
     friend class connection::detail::Broker;
 
     void* getZMQContext(); //!< @internal returns the ZeroMQ context
 
 private:
-    Receiver& operator=( const Receiver& ) = delete;
+    Receiver& operator=(const Receiver&) = delete;
 
-    std::shared_ptr< detail::Receiver > const _impl;
+    std::shared_ptr<detail::Receiver> const _impl;
 };
-
 }
 
 #endif

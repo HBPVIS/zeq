@@ -4,7 +4,6 @@
  *                     Juan Hernando <jhernando@fi.upm.es>
  */
 
-
 #ifndef ZEROEQ_DETAIL_PORT_H
 #define ZEROEQ_DETAIL_PORT_H
 
@@ -15,10 +14,8 @@ namespace zeroeq
 {
 namespace detail
 {
-
 /** @return a fixed, pseudo-random port for the given name. */
-uint16_t getPort( const std::string& name );
-
+uint16_t getPort(const std::string& name);
 }
 }
 

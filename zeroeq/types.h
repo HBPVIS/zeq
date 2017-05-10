@@ -7,15 +7,15 @@
 #ifndef ZEROEQ_TYPES_H
 #define ZEROEQ_TYPES_H
 
-#include <zeroeq/defines.h>
-#include <servus/types.h>
-#include <servus/uint128_t.h>
 #include <functional>
 #include <memory>
+#include <servus/types.h>
+#include <servus/uint128_t.h>
+#include <zeroeq/defines.h>
 
 #ifdef _WIN32
-#  define NOMINMAX
-#  include <winsock2.h> // SOCKET
+#define NOMINMAX
+#include <winsock2.h> // SOCKET
 #endif
 
 /**
@@ -36,17 +36,16 @@
  */
 namespace zeroeq
 {
-
 using servus::uint128_t;
 class Publisher;
 class Subscriber;
 class URI;
 
 /** Callback for receival of subscribed event w/o payload. */
-typedef std::function< void() > EventFunc;
+typedef std::function<void()> EventFunc;
 
 /** Callback for receival of subscribed event w/ payload. */
-typedef std::function< void( const void*, size_t ) > EventPayloadFunc;
+typedef std::function<void(const void*, size_t)> EventPayloadFunc;
 
 #ifdef WIN32
 typedef SOCKET SocketDescriptor;
@@ -63,8 +62,10 @@ using servus::make_uint128;
 static const std::string DEFAULT_SESSION = "__zeroeq";
 static const std::string NULL_SESSION = "__null_session";
 
-namespace detail { struct Socket; }
-
+namespace detail
+{
+struct Socket;
+}
 }
 
 #endif

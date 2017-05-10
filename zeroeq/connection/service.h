@@ -6,15 +6,14 @@
 #ifndef ZEROEQ_CONNECTION_SERVICE_H
 #define ZEROEQ_CONNECTION_SERVICE_H
 
+#include <string>
 #include <zeroeq/api.h>
 #include <zeroeq/types.h>
-#include <string>
 
 namespace zeroeq
 {
 namespace connection
 {
-
 /**
  * Subscribes a Publisher to a remote receiver using a connection::Broker.
  *
@@ -33,8 +32,8 @@ public:
      * @param publisher the publisher to subscribe to.
      * @return true if the subscription was successful, false on error.
      */
-    ZEROEQ_API static bool subscribe( const std::string& address,
-                                      const Publisher& publisher );
+    ZEROEQ_API static bool subscribe(const std::string& address,
+                                     const Publisher& publisher);
 
     /**
      * Request subscription of the given publisher to a named remote broker.
@@ -48,15 +47,14 @@ public:
      * @param publisher the publisher to subscribe to.
      * @return true if the subscription was successful, false on error.
      */
-    ZEROEQ_API static bool subscribe( const std::string& hostname,
-                                      const std::string& name,
-                                      const Publisher& publisher );
+    ZEROEQ_API static bool subscribe(const std::string& hostname,
+                                     const std::string& name,
+                                     const Publisher& publisher);
 
 private:
-    Service( const Service& ) = delete;
-    Service& operator=( const Service& ) = delete;
+    Service(const Service&) = delete;
+    Service& operator=(const Service&) = delete;
 };
-
 }
 }
 #endif

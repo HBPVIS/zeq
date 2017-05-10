@@ -55,7 +55,7 @@ public:
      * @param session session name used for filtering of discovered publishers
      * @throw std::runtime_error if ZeroConf is not available
      */
-    ZEROEQ_API explicit Subscriber( const std::string& session );
+    ZEROEQ_API explicit Subscriber(const std::string& session);
 
     /**
      * Create a subscriber which subscribes to a specific publisher.
@@ -67,7 +67,7 @@ public:
      * @param uri publisher URI in the format [scheme://]*|host|IP|IF:port
      * @throw std::runtime_error if URI is not fully qualified
      */
-    ZEROEQ_API explicit Subscriber( const URI& uri );
+    ZEROEQ_API explicit Subscriber(const URI& uri);
 
     /**
      * Create a subscriber which subscribes to publisher(s) on the given URI.
@@ -86,7 +86,7 @@ public:
      * @throw std::runtime_error if ZeroConf is not available or if session name
      *                           is invalid
      */
-    ZEROEQ_API Subscriber( const URI& uri, const std::string& session );
+    ZEROEQ_API Subscriber(const URI& uri, const std::string& session);
 
     /**
      * Create a default shared subscriber.
@@ -94,7 +94,7 @@ public:
      * @sa Subscriber()
      * @param shared another receiver to share data reception with
      */
-    ZEROEQ_API Subscriber( Receiver& shared );
+    ZEROEQ_API Subscriber(Receiver& shared);
 
     /**
      * Create a shared subscriber which subscribes to publisher(s) from the
@@ -105,7 +105,7 @@ public:
      * @param session only subscribe to publishers of the same session
      * @param shared another receiver to share data reception with
      */
-    ZEROEQ_API Subscriber( const std::string& session, Receiver& shared );
+    ZEROEQ_API Subscriber(const std::string& session, Receiver& shared);
 
     /**
      * Create a shared subscriber which subscribes to publisher(s) on the given
@@ -116,7 +116,7 @@ public:
      * @param uri publisher URI in the format [scheme://]*|host|IP|IF:port
      * @param shared another receiver to share data reception with
      */
-    ZEROEQ_API Subscriber( const URI& uri, Receiver& shared );
+    ZEROEQ_API Subscriber(const URI& uri, Receiver& shared);
 
     /**
      * Create a subscriber which subscribes to publisher(s) on the given URI.
@@ -127,8 +127,8 @@ public:
      * @param session session name used for filtering of discovered publishers
      * @param shared another receiver to share data reception with.
      */
-    ZEROEQ_API Subscriber( const URI& uri, const std::string& session,
-                        Receiver& shared );
+    ZEROEQ_API Subscriber(const URI& uri, const std::string& session,
+                          Receiver& shared);
 
     /** Destroy this subscriber and withdraw any subscriptions. */
     ZEROEQ_API ~Subscriber();
@@ -146,7 +146,7 @@ public:
      * @param serializable the object to update on receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool subscribe( servus::Serializable& serializable );
+    ZEROEQ_API bool subscribe(servus::Serializable& serializable);
 
     /**
      * Subscribe to an event from any connected publisher.
@@ -157,7 +157,7 @@ public:
      * @param func the callback function called upon receival
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool subscribe( const uint128_t& event, const EventFunc& func );
+    ZEROEQ_API bool subscribe(const uint128_t& event, const EventFunc& func);
 
     /**
      * Subscribe to an event with payload from any connected publisher.
@@ -168,8 +168,8 @@ public:
      * @param func the callback function called upon receival
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQ_API bool subscribe( const uint128_t& event,
-                               const EventPayloadFunc& func );
+    ZEROEQ_API bool subscribe(const uint128_t& event,
+                              const EventPayloadFunc& func);
 
     /**
      * Unsubscribe a serializable object to stop applying updates from any
@@ -178,24 +178,23 @@ public:
      * @param serializable the object to stop updating on receive()
      * @return true if removal of subscription was successful, false otherwise
      */
-    ZEROEQ_API bool unsubscribe( const servus::Serializable& serializable );
+    ZEROEQ_API bool unsubscribe(const servus::Serializable& serializable);
 
-    ZEROEQ_API bool unsubscribe( const uint128_t& event );
+    ZEROEQ_API bool unsubscribe(const uint128_t& event);
 
     /** @return the session name that is used for filtering. */
     ZEROEQ_API const std::string& getSession() const;
 
 private:
     class Impl;
-    std::unique_ptr< Impl > _impl;
+    std::unique_ptr<Impl> _impl;
 
     // Receiver API
-    void addSockets( std::vector< detail::Socket >& entries ) final;
-    void process( detail::Socket& socket, uint32_t timeout ) final;
+    void addSockets(std::vector<detail::Socket>& entries) final;
+    void process(detail::Socket& socket, uint32_t timeout) final;
     void update() final;
-    void addConnection( const std::string& uri ) final;
+    void addConnection(const std::string& uri) final;
 };
-
 }
 
 #endif

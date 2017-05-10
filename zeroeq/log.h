@@ -10,20 +10,26 @@
 #define ZEROEQERROR std::cerr
 #define ZEROEQWARN std::cerr
 #ifdef NDEBUG
-#  define ZEROEQINFO if( false ) std::cout
-#  define ZEROEQLOG if( false ) std::cout
+#define ZEROEQINFO \
+    if (false)     \
+    std::cout
+#define ZEROEQLOG \
+    if (false)    \
+    std::cout
 #else
-#  define ZEROEQINFO std::cerr
-#  define ZEROEQLOG std::cerr
+#define ZEROEQINFO std::cerr
+#define ZEROEQLOG std::cerr
 #endif
-#define ZEROEQDONTCALL \
-    { ZEROEQERROR << "Code is not supposed to be called in this context"    \
-                  << std::endl; }
+#define ZEROEQDONTCALL                                                     \
+    {                                                                      \
+        ZEROEQERROR << "Code is not supposed to be called in this context" \
+                    << std::endl;                                          \
+    }
 
-#define ZEROEQTHROW(exc) \
-    {                                                               \
-        ZEROEQINFO << exc.what() << std::endl;                      \
-        throw exc;                                                  \
+#define ZEROEQTHROW(exc)                       \
+    {                                          \
+        ZEROEQINFO << exc.what() << std::endl; \
+        throw exc;                             \
     }
 
 #endif

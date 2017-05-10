@@ -14,19 +14,17 @@ namespace zeroeq
 {
 namespace http
 {
-
 /**
  * @return ready future wrapping an HTTP Response constructed with
  *         the values passed.
  */
-template< typename ...Args >
-std::future< Response > make_ready_response( Args&& ...args )
+template <typename... Args>
+std::future<Response> make_ready_response(Args&&... args)
 {
-    std::promise< Response > promise;
-    promise.set_value( Response( std::forward< Args >( args )... ));
+    std::promise<Response> promise;
+    promise.set_value(Response(std::forward<Args>(args)...));
     return promise.get_future();
 }
-
 }
 }
 

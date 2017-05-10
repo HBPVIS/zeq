@@ -12,7 +12,6 @@ namespace zeroeq
 {
 namespace http
 {
-
 /** HTTP method used in a Request. */
 enum class Method
 {
@@ -53,7 +52,6 @@ struct Request
     std::string query;
     std::string body;
 };
-
 }
 }
 

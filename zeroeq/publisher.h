@@ -14,7 +14,6 @@
 
 namespace zeroeq
 {
-
 /**
  * Serves and publishes events, consumed by Subscriber.
  *
@@ -51,7 +50,7 @@ public:
      * @param session session name used for announcement
      * @throw std::runtime_error if session is empty or socket setup fails
      */
-    ZEROEQ_API explicit Publisher( const std::string& session );
+    ZEROEQ_API explicit Publisher(const std::string& session);
 
     /**
      * Create a publisher which runs on the specified URI.
@@ -64,7 +63,7 @@ public:
      * @param uri publishing URI in the format [scheme://][*|host|IP|IF][:port]
      * @throw std::runtime_error if session is empty or socket setup fails
      */
-    ZEROEQ_API explicit Publisher( const URI& uri );
+    ZEROEQ_API explicit Publisher(const URI& uri);
 
     /**
      * Create a publisher which runs on the specified URI and announces the
@@ -79,7 +78,7 @@ public:
      * @param uri publishing URI in the format [scheme://][*|host|IP|IF][:port]
      * @throw std::runtime_error if session is empty or socket setup fails
      */
-    ZEROEQ_API Publisher( const URI& uri, const std::string& session );
+    ZEROEQ_API Publisher(const URI& uri, const std::string& session);
 
     ZEROEQ_API ~Publisher();
 
@@ -91,7 +90,7 @@ public:
      * @param serializable the object to publish
      * @return true if publish was successful
      */
-    ZEROEQ_API bool publish( const servus::Serializable& serializable );
+    ZEROEQ_API bool publish(const servus::Serializable& serializable);
 
     /**
      * Publish the given event to any subscriber.
@@ -101,7 +100,7 @@ public:
      * @param event the event identifier to publish
      * @return true if publish was successful
      */
-    ZEROEQ_API bool publish( const uint128_t& event );
+    ZEROEQ_API bool publish(const uint128_t& event);
 
     /**
      * Publish the given event with payload to any subscriber.
@@ -113,8 +112,8 @@ public:
      * @param size the size of the payload data
      * @return true if publish was successful
      */
-    ZEROEQ_API bool publish( const uint128_t& event, const void* data,
-                             size_t size );
+    ZEROEQ_API bool publish(const uint128_t& event, const void* data,
+                            size_t size);
 
     /**
      * Get the publisher URI.
@@ -133,12 +132,11 @@ public:
 
 private:
     class Impl;
-    std::unique_ptr< Impl > _impl;
+    std::unique_ptr<Impl> _impl;
 
-    Publisher( const Publisher& ) = delete;
-    Publisher& operator=( const Publisher& ) = delete;
+    Publisher(const Publisher&) = delete;
+    Publisher& operator=(const Publisher&) = delete;
 };
-
 }
 
 #endif

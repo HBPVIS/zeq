@@ -9,12 +9,10 @@ namespace zeroeq
 {
 namespace detail
 {
-
 uint128_t& Sender::getUUID()
 {
     static uint128_t identifier = servus::make_UUID();
     return identifier;
 }
-
 }
 }

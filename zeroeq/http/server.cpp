@@ -11,10 +11,10 @@
 #include "helpers.h"
 #include "requestHandler.h"
 
-#include "../log.h"
 #include "../detail/broker.h"
 #include "../detail/sender.h"
 #include "../detail/socket.h"
+#include "../log.h"
 
 #include "jsoncpp/json/json.h"
 
@@ -29,465 +29,461 @@ namespace
 {
 // Transform camelCase to hyphenated-notation, e.g.
 // lexis/render/LookOut -> lexis/render/look-out
-// Inspiration: https://gist.github.com/rodamber/2558e25d4d8f6b9f2ffdf7bd49471340
-std::string _camelCaseToHyphenated( const std::string& camelCase )
+// Inspiration:
+// https://gist.github.com/rodamber/2558e25d4d8f6b9f2ffdf7bd49471340
+std::string _camelCaseToHyphenated(const std::string& camelCase)
 {
-    if( camelCase.empty( ))
+    if (camelCase.empty())
         return camelCase;
 
-    std::string str( 1, tolower(camelCase[0]) );
-    for( auto it = camelCase.begin() + 1; it != camelCase.end(); ++it )
+    std::string str(1, tolower(camelCase[0]));
+    for (auto it = camelCase.begin() + 1; it != camelCase.end(); ++it)
     {
-        if( isupper(*it) && *(it-1) != '-' && islower(*(it-1)))
+        if (isupper(*it) && *(it - 1) != '-' && islower(*(it - 1)))
             str += "-";
         str += *it;
     }
 
-    std::transform( str.begin(), str.end(), str.begin(), ::tolower );
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
 
 // http://stackoverflow.com/questions/5343190
-std::string _replaceAll( std::string subject, const std::string& search,
-                         const std::string& replace )
+std::string _replaceAll(std::string subject, const std::string& search,
+                        const std::string& replace)
 {
     size_t pos = 0;
-    while( (pos = subject.find( search, pos )) != std::string::npos )
+    while ((pos = subject.find(search, pos)) != std::string::npos)
     {
-        subject.replace( pos, search.length(), replace );
+        subject.replace(pos, search.length(), replace);
         pos += replace.length();
     }
     return subject;
 }
 
 // convert name to lowercase with '/' separators instead of '::'
-std::string _convertEndpointName( const std::string& endpoint )
+std::string _convertEndpointName(const std::string& endpoint)
 {
-    return _camelCaseToHyphenated( _replaceAll( endpoint, "::", "/" ));
+    return _camelCaseToHyphenated(_replaceAll(endpoint, "::", "/"));
 }
 
 const std::string JSON_TYPE = "application/json";
 const std::string REQUEST_REGISTRY = "registry";
 const std::string REQUEST_SCHEMA = "schema";
 
-void _checkEndpointName( const std::string& endpoint )
+void _checkEndpointName(const std::string& endpoint)
 {
-    if( endpoint == REQUEST_REGISTRY )
-        ZEROEQTHROW( std::runtime_error(
-                         "'registry' not allowed as endpoint name" ));
+    if (endpoint == REQUEST_REGISTRY)
+        ZEROEQTHROW(
+            std::runtime_error("'registry' not allowed as endpoint name"));
 }
 
-bool _endsWithSchema( const std::string& uri )
+bool _endsWithSchema(const std::string& uri)
 {
-    if( uri.length() < REQUEST_SCHEMA.length( ))
+    if (uri.length() < REQUEST_SCHEMA.length())
         return false;
-    return uri.compare( uri.length() - REQUEST_SCHEMA.length(),
-                        std::string::npos, REQUEST_SCHEMA ) == 0;
+    return uri.compare(uri.length() - REQUEST_SCHEMA.length(),
+                       std::string::npos, REQUEST_SCHEMA) == 0;
 }
 
-std::string _removeEndpointFromPath( const std::string& endpoint,
-                                     const std::string& path )
+std::string _removeEndpointFromPath(const std::string& endpoint,
+                                    const std::string& path)
 {
-    if( endpoint == "/" )
+    if (endpoint == "/")
         return path;
 
-    if( endpoint.size() >= path.size( ))
+    if (endpoint.size() >= path.size())
         return std::string();
 
-    return path.substr( endpoint.size( ));
+    return path.substr(endpoint.size());
 }
 
 } // unnamed namespace
-
 
 namespace zeroeq
 {
 namespace http
 {
-
 class Server::Impl : public detail::Sender
 {
 public:
-    Impl() : Impl( URI( )) {}
-
-    Impl( const URI& uri_ )
-        : detail::Sender( URI( _getInprocURI( )), 0, ZMQ_PAIR )
-        , _requestHandler( _getInprocURI(), getContext( ))
-        , _httpOptions( _requestHandler )
-        , _httpServer( _httpOptions.
-                       // INADDR_ANY translation: zmq -> boost.asio
-                       address( uri_.getHost() == "*" ? "0.0.0.0"
-                                                      : uri_.getHost( )).
-                       port( std::to_string( int(uri_.getPort( )))).
-                       protocol_family( HTTPServer::options::ipv4 ).
-                       reuse_address( true ) )
+    Impl()
+        : Impl(URI())
     {
-        if( ::zmq_bind( socket, _getInprocURI().c_str( )) == -1 )
+    }
+
+    Impl(const URI& uri_)
+        : detail::Sender(URI(_getInprocURI()), 0, ZMQ_PAIR)
+        , _requestHandler(_getInprocURI(), getContext())
+        , _httpOptions(_requestHandler)
+        , _httpServer(
+              _httpOptions
+                  .
+              // INADDR_ANY translation: zmq -> boost.asio
+              address(uri_.getHost() == "*" ? "0.0.0.0" : uri_.getHost())
+                  .port(std::to_string(int(uri_.getPort())))
+                  .protocol_family(HTTPServer::options::ipv4)
+                  .reuse_address(true))
+    {
+        if (::zmq_bind(socket, _getInprocURI().c_str()) == -1)
         {
-            ZEROEQTHROW( std::runtime_error(
-                             "Cannot bind HTTPServer to inproc socket" ));
+            ZEROEQTHROW(
+                std::runtime_error("Cannot bind HTTPServer to inproc socket"));
         }
 
         try
         {
             _httpServer.listen();
-            _httpThread.reset( new std::thread( [&]
-            {
+            _httpThread.reset(new std::thread([&] {
                 try
                 {
                     _httpServer.run();
                 }
-                catch( const std::exception& e )
+                catch (const std::exception& e)
                 {
-                    ZEROEQERROR << "Error during HTTPServer::run(): "
-                                << e.what() << std::endl;
+                    ZEROEQERROR
+                        << "Error during HTTPServer::run(): " << e.what()
+                        << std::endl;
                 }
             }));
         }
-        catch( const std::exception& e )
+        catch (const std::exception& e)
         {
-            ZEROEQTHROW( std::runtime_error(
-                             std::string( "Error while starting HTTP server: " )
-                             + e.what( )));
+            ZEROEQTHROW(std::runtime_error(
+                std::string("Error while starting HTTP server: ") + e.what()));
         }
 
         uri = URI();
-        uri.setHost( _httpServer.address( ));
-        uri.setPort( std::stoi( _httpServer.port( )));
+        uri.setHost(_httpServer.address());
+        uri.setPort(std::stoi(_httpServer.port()));
     }
 
     ~Impl()
     {
-        if( _httpThread )
+        if (_httpThread)
         {
             _httpServer.stop();
             _httpThread->join();
         }
     }
 
-    void registerSchema( const std::string& endpoint,
-                         const std::string& schema )
+    void registerSchema(const std::string& endpoint, const std::string& schema)
     {
-        const std::string exist = getSchema( endpoint );
-        if( exist.empty( ))
-            _schemas[ endpoint ] = schema;
-        else if( schema != exist )
-            ZEROEQTHROW( std::runtime_error(
-                             "Schema registered for endpoint differs: "
-                             + endpoint  ));
+        const std::string exist = getSchema(endpoint);
+        if (exist.empty())
+            _schemas[endpoint] = schema;
+        else if (schema != exist)
+            ZEROEQTHROW(std::runtime_error(
+                "Schema registered for endpoint differs: " + endpoint));
     }
 
-    std::string getSchema( const std::string& endpoint ) const
+    std::string getSchema(const std::string& endpoint) const
     {
-        const auto& i = _schemas.find( endpoint );
+        const auto& i = _schemas.find(endpoint);
         return i != _schemas.end() ? i->second : std::string();
     }
 
-    bool remove( const servus::Serializable& serializable )
+    bool remove(const servus::Serializable& serializable)
     {
-        const auto endpoint = _convertEndpointName( serializable.getTypeName());
-        _schemas.erase( endpoint );
-        const bool foundPUT = _methods[int(Method::PUT)].erase( endpoint ) != 0;
-        const bool foundGET = _methods[int(Method::GET)].erase( endpoint ) != 0;
+        const auto endpoint = _convertEndpointName(serializable.getTypeName());
+        _schemas.erase(endpoint);
+        const bool foundPUT = _methods[int(Method::PUT)].erase(endpoint) != 0;
+        const bool foundGET = _methods[int(Method::GET)].erase(endpoint) != 0;
         return foundPUT || foundGET;
     }
 
-    bool remove( const std::string& endpoint )
+    bool remove(const std::string& endpoint)
     {
-        _schemas.erase( endpoint );
+        _schemas.erase(endpoint);
         bool foundMethod = false;
-        for( auto& method : _methods )
-            if( method.erase( endpoint ) != 0 )
+        for (auto& method : _methods)
+            if (method.erase(endpoint) != 0)
                 foundMethod = true;
         return foundMethod;
     }
 
-    bool handle( const Method method, const std::string& endpoint,
-                 RESTFunc func )
+    bool handle(const Method method, const std::string& endpoint, RESTFunc func)
     {
-        _checkEndpointName( endpoint );
+        _checkEndpointName(endpoint);
 
-        if( _methods[int(method)].count( endpoint ) != 0 )
+        if (_methods[int(method)].count(endpoint) != 0)
             return false;
 
         _methods[int(method)][endpoint] = func;
         return true;
     }
 
-    bool handlePUT( const std::string& endpoint,
-                    servus::Serializable& serializable )
+    bool handlePUT(const std::string& endpoint,
+                   servus::Serializable& serializable)
     {
-        const auto func = [&serializable]( const std::string& json )
-            { return serializable.fromJSON( json ); };
-        return handlePUT( endpoint, serializable.getSchema(), func );
+        const auto func = [&serializable](const std::string& json) {
+            return serializable.fromJSON(json);
+        };
+        return handlePUT(endpoint, serializable.getSchema(), func);
     }
 
-    bool handlePUT( const std::string& endpoint, const std::string& schema,
-                    const PUTPayloadFunc& func )
+    bool handlePUT(const std::string& endpoint, const std::string& schema,
+                   const PUTPayloadFunc& func)
     {
-        _checkEndpointName( endpoint );
+        _checkEndpointName(endpoint);
 
-        const auto futureFunc = [func]( const Request& request )
-        {
-            const auto code = func( request.body ) ? Code::OK
-                                                   : Code::BAD_REQUEST;
-            return make_ready_response( code );
+        const auto futureFunc = [func](const Request& request) {
+            const auto code = func(request.body) ? Code::OK : Code::BAD_REQUEST;
+            return make_ready_response(code);
         };
-        if( !handle( Method::PUT, endpoint, futureFunc ))
+        if (!handle(Method::PUT, endpoint, futureFunc))
             return false;
 
-        if( !schema.empty( ))
-            registerSchema( endpoint, schema );
+        if (!schema.empty())
+            registerSchema(endpoint, schema);
         return true;
     }
 
-    bool handleGET( const std::string& endpoint,
-                    const servus::Serializable& serializable )
+    bool handleGET(const std::string& endpoint,
+                   const servus::Serializable& serializable)
     {
         const auto func = [&serializable] { return serializable.toJSON(); };
-        return handleGET( endpoint, serializable.getSchema(), func );
+        return handleGET(endpoint, serializable.getSchema(), func);
     }
 
-    bool handleGET( const std::string& endpoint, const std::string& schema,
-                    const GETFunc& func )
+    bool handleGET(const std::string& endpoint, const std::string& schema,
+                   const GETFunc& func)
     {
-        _checkEndpointName( endpoint );
+        _checkEndpointName(endpoint);
 
-        const auto futureFunc = [func]( const Request& )
-        {
-            return make_ready_response( Code::OK, func(), JSON_TYPE );
+        const auto futureFunc = [func](const Request&) {
+            return make_ready_response(Code::OK, func(), JSON_TYPE);
         };
-        if( !handle( Method::GET, endpoint, futureFunc ))
+        if (!handle(Method::GET, endpoint, futureFunc))
             return false;
 
-        if( !schema.empty( ))
-            registerSchema( endpoint, schema );
+        if (!schema.empty())
+            registerSchema(endpoint, schema);
 
         return true;
     }
 
-    void addSockets( std::vector< detail::Socket >& entries )
+    void addSockets(std::vector<detail::Socket>& entries)
     {
         detail::Socket entry;
         entry.socket = socket;
         entry.events = ZMQ_POLLIN;
-        entries.push_back( entry );
+        entries.push_back(entry);
     }
 
     void process()
     {
         Message* message = nullptr;
-        ::zmq_recv( socket, &message, sizeof( message ), 0 );
-        if( !message )
-            ZEROEQTHROW( std::runtime_error(
-                             "Could not receive HTTP request from HTTP server" ));
+        ::zmq_recv(socket, &message, sizeof(message), 0);
+        if (!message)
+            ZEROEQTHROW(std::runtime_error(
+                "Could not receive HTTP request from HTTP server"));
 
-       _processRequest( *message );
+        _processRequest(*message);
 
         bool done = true;
-        ::zmq_send( socket, &done, sizeof( done ), 0 );
+        ::zmq_send(socket, &done, sizeof(done), 0);
     }
 
 protected:
     // key stores endpoints of Serializable objects lower-case, hyphenated,
     // with '/' separators
     // must be an ordered map in order to iterate from the most specific path
-    typedef std::map< std::string, RESTFunc,
-                      std::greater< std::string >> FuncMap;
-    typedef std::map< std::string, std::string > SchemaMap;
+    typedef std::map<std::string, RESTFunc, std::greater<std::string>> FuncMap;
+    typedef std::map<std::string, std::string> SchemaMap;
 
     SchemaMap _schemas;
-    std::array<FuncMap, size_t( Method::ALL )> _methods;
+    std::array<FuncMap, size_t(Method::ALL)> _methods;
 
     RequestHandler _requestHandler;
     HTTPServer::options _httpOptions;
     HTTPServer _httpServer;
-    std::unique_ptr< std::thread > _httpThread;
+    std::unique_ptr<std::thread> _httpThread;
 
     std::string _getInprocURI() const
     {
         std::ostringstream inprocURI;
-        // No socket notifier possible on inproc ZMQ sockets,
-        // (https://github.com/zeromq/libzmq/issues/1434).
-        // Use inproc on Windows as ipc is not supported there, which means
-        // we do not support notifications on Windows...
+// No socket notifier possible on inproc ZMQ sockets,
+// (https://github.com/zeromq/libzmq/issues/1434).
+// Use inproc on Windows as ipc is not supported there, which means
+// we do not support notifications on Windows...
 #ifdef _MSC_VER
-        inprocURI << "inproc://#" << static_cast< const void* >( this );
+        inprocURI << "inproc://#" << static_cast<const void*>(this);
 #else
-        inprocURI << "ipc:///tmp/" << static_cast< const void* >( this );
+        inprocURI << "ipc:///tmp/" << static_cast<const void*>(this);
 #endif
         return inprocURI.str();
     }
 
     std::string _getRegistry() const
     {
-        Json::Value body( Json::objectValue );
-        for( const auto& i : _methods[int(Method::GET)] )
-            body[i.first].append( "GET" );
-        for( const auto& i : _methods[int(Method::POST)] )
-            body[i.first].append( "POST" );
-        for( const auto& i : _methods[int(Method::PUT)] )
-            body[i.first].append( "PUT" );
-        for( const auto& i : _methods[int(Method::PATCH)] )
-            body[i.first].append( "PATCH" );
-        for( const auto& i : _methods[int(Method::DELETE)] )
-            body[i.first].append( "DELETE" );
+        Json::Value body(Json::objectValue);
+        for (const auto& i : _methods[int(Method::GET)])
+            body[i.first].append("GET");
+        for (const auto& i : _methods[int(Method::POST)])
+            body[i.first].append("POST");
+        for (const auto& i : _methods[int(Method::PUT)])
+            body[i.first].append("PUT");
+        for (const auto& i : _methods[int(Method::PATCH)])
+            body[i.first].append("PATCH");
+        for (const auto& i : _methods[int(Method::DELETE)])
+            body[i.first].append("DELETE");
         return body.toStyledString();
     }
 
-    std::string _getAllowedMethods( const std::string& endpoint ) const
+    std::string _getAllowedMethods(const std::string& endpoint) const
     {
         std::string methods;
-        if( _methods[int(Method::GET)].count( endpoint ))
-            methods.append( methods.empty() ? "GET" : ", GET" );
-        if( _methods[int(Method::POST)].count( endpoint ))
-            methods.append( methods.empty() ? "POST" : ", POST" );
-        if( _methods[int(Method::PUT)].count( endpoint ))
-            methods.append( methods.empty() ? "PUT" : ", PUT" );
-        if( _methods[int(Method::PATCH)].count( endpoint ))
-            methods.append( methods.empty() ? "PATCH" : ", PATCH" );
-        if( _methods[int(Method::DELETE)].count( endpoint ))
-            methods.append( methods.empty() ? "DELETE" : ", DELETE" );
+        if (_methods[int(Method::GET)].count(endpoint))
+            methods.append(methods.empty() ? "GET" : ", GET");
+        if (_methods[int(Method::POST)].count(endpoint))
+            methods.append(methods.empty() ? "POST" : ", POST");
+        if (_methods[int(Method::PUT)].count(endpoint))
+            methods.append(methods.empty() ? "PUT" : ", PUT");
+        if (_methods[int(Method::PATCH)].count(endpoint))
+            methods.append(methods.empty() ? "PATCH" : ", PATCH");
+        if (_methods[int(Method::DELETE)].count(endpoint))
+            methods.append(methods.empty() ? "DELETE" : ", DELETE");
         return methods;
     }
 
-    void _processRequest( Message& message )
+    void _processRequest(Message& message)
     {
         const auto method = message.request.method;
         // remove leading '/'
-        const auto path = message.request.path.substr( 1 );
+        const auto path = message.request.path.substr(1);
 
-        if( method == Method::GET )
+        if (method == Method::GET)
         {
-            if( path == REQUEST_REGISTRY )
+            if (path == REQUEST_REGISTRY)
             {
-                message.response = make_ready_response( Code::OK,
-                                                        _getRegistry(),
-                                                        JSON_TYPE );
+                message.response =
+                    make_ready_response(Code::OK, _getRegistry(), JSON_TYPE);
                 return;
             }
 
-            if( _endsWithSchema( path ))
+            if (_endsWithSchema(path))
             {
-                const auto endpoint = path.substr( 0, path.find_last_of( '/' ));
-                const auto it = _schemas.find( endpoint );
-                if( it != _schemas.end( ))
+                const auto endpoint = path.substr(0, path.find_last_of('/'));
+                const auto it = _schemas.find(endpoint);
+                if (it != _schemas.end())
                 {
-                    message.response = make_ready_response( Code::OK,
-                                                            it->second,
-                                                            JSON_TYPE );
+                    message.response =
+                        make_ready_response(Code::OK, it->second, JSON_TYPE);
                     return;
                 }
             }
         }
 
-        const auto beginsWithPath = [&path]( const FuncMap::value_type& pair )
-        {
+        const auto beginsWithPath = [&path](const FuncMap::value_type& pair) {
             const auto& endpoint = pair.first;
-            return path.find( endpoint ) == 0;
+            return path.find(endpoint) == 0;
         };
         const auto& funcMap = _methods[int(method)];
-        const auto it = std::find_if( funcMap.begin(), funcMap.end(),
-                                      beginsWithPath );
-        if( it != funcMap.end( ))
+        const auto it =
+            std::find_if(funcMap.begin(), funcMap.end(), beginsWithPath);
+        if (it != funcMap.end())
         {
             const auto& endpoint = it->first;
             const auto& func = it->second;
 
-            const auto pathStripped = _removeEndpointFromPath( endpoint, path );
-            if( pathStripped.empty() || *endpoint.rbegin() == '/' )
+            const auto pathStripped = _removeEndpointFromPath(endpoint, path);
+            if (pathStripped.empty() || *endpoint.rbegin() == '/')
             {
                 message.request.path = pathStripped;
-                message.response = func( message.request );
+                message.response = func(message.request);
                 return;
             }
         }
 
         // if "/" is registered as an endpoint it should be passed all
         // unhandled requests.
-        if( funcMap.count( "/" ))
+        if (funcMap.count("/"))
         {
-            const auto& func = funcMap.at( "/" );
+            const auto& func = funcMap.at("/");
             message.request.path = path;
-            message.response = func( message.request );
+            message.response = func(message.request);
             return;
         }
 
         // return informative error 405 "Method Not Allowed" if possible
-        const auto allowedMethods = _getAllowedMethods( path );
-        if( !allowedMethods.empty( ))
+        const auto allowedMethods = _getAllowedMethods(path);
+        if (!allowedMethods.empty())
         {
-            using Headers = std::map< Header, std::string>;
-            Headers headers{{ Header::ALLOW, allowedMethods }};
-            message.response = make_ready_response( Code::NOT_SUPPORTED,
-                                                    std::string(),
-                                                    std::move( headers ));
+            using Headers = std::map<Header, std::string>;
+            Headers headers{{Header::ALLOW, allowedMethods}};
+            message.response =
+                make_ready_response(Code::NOT_SUPPORTED, std::string(),
+                                    std::move(headers));
             return;
         }
 
-        message.response = make_ready_response( Code::NOT_FOUND );
+        message.response = make_ready_response(Code::NOT_FOUND);
     }
 };
 
 namespace
 {
-std::string _getServerParameter( const int argc, const char* const* argv )
+std::string _getServerParameter(const int argc, const char* const* argv)
 {
-    for( int i = 0; i < argc; ++i  )
+    for (int i = 0; i < argc; ++i)
     {
-        if( std::string( argv[i] ) == "--zeroeq-http-server" )
+        if (std::string(argv[i]) == "--zeroeq-http-server")
         {
-            if( i == argc - 1 || argv[ i + 1 ][0] == '-' )
+            if (i == argc - 1 || argv[i + 1][0] == '-')
                 return "tcp://";
-            return argv[i+1];
+            return argv[i + 1];
         }
     }
     return std::string();
 }
 }
 
-Server::Server( const URI& uri, Receiver& shared )
-    : Receiver( shared )
-    , _impl( new Impl( uri ))
-{}
+Server::Server(const URI& uri, Receiver& shared)
+    : Receiver(shared)
+    , _impl(new Impl(uri))
+{
+}
 
-Server::Server( const URI& uri )
+Server::Server(const URI& uri)
     : Receiver()
-    , _impl( new Impl( uri ))
-{}
+    , _impl(new Impl(uri))
+{
+}
 
-Server::Server( Receiver& shared )
-    : Receiver( shared )
-    , _impl( new Impl )
-{}
+Server::Server(Receiver& shared)
+    : Receiver(shared)
+    , _impl(new Impl)
+{
+}
 
 Server::Server()
     : Receiver()
-    , _impl( new Impl )
-{}
-
-Server::~Server()
-{}
-
-std::unique_ptr< Server > Server::parse( const int argc,
-                                         const char* const* argv )
+    , _impl(new Impl)
 {
-    const std::string& param = _getServerParameter( argc, argv );
-    if( param.empty( ))
-        return nullptr;
-
-    return std::unique_ptr< Server >( new Server( URI( param )));
 }
 
-std::unique_ptr< Server > Server::parse( const int argc,
-                                         const char* const* argv,
-                                         Receiver& shared )
+Server::~Server()
 {
-    const std::string& param = _getServerParameter( argc, argv );
-    if( param.empty( ))
+}
+
+std::unique_ptr<Server> Server::parse(const int argc, const char* const* argv)
+{
+    const std::string& param = _getServerParameter(argc, argv);
+    if (param.empty())
         return nullptr;
 
-    return std::unique_ptr< Server >( new Server( URI( param ), shared ));
+    return std::unique_ptr<Server>(new Server(URI(param)));
+}
+
+std::unique_ptr<Server> Server::parse(const int argc, const char* const* argv,
+                                      Receiver& shared)
+{
+    const std::string& param = _getServerParameter(argc, argv);
+    if (param.empty())
+        return nullptr;
+
+    return std::unique_ptr<Server>(new Server(URI(param), shared));
 }
 
 const URI& Server::getURI() const
@@ -498,121 +494,117 @@ const URI& Server::getURI() const
 SocketDescriptor Server::getSocketDescriptor() const
 {
 #ifdef _MSC_VER
-    ZEROEQTHROW( std::runtime_error(
-                 std::string( "HTTP server socket descriptor not available" )));
+    ZEROEQTHROW(std::runtime_error(
+        std::string("HTTP server socket descriptor not available")));
 #else
     SocketDescriptor fd = 0;
     size_t fdLength = sizeof(fd);
-    if( ::zmq_getsockopt( _impl->socket, ZMQ_FD, &fd, &fdLength ) == -1 )
+    if (::zmq_getsockopt(_impl->socket, ZMQ_FD, &fd, &fdLength) == -1)
     {
-        ZEROEQTHROW( std::runtime_error(
-                         std::string( "Could not get socket descriptor" )));
+        ZEROEQTHROW(
+            std::runtime_error(std::string("Could not get socket descriptor")));
     }
     return fd;
 #endif
 }
 
-bool Server::handle( const std::string& endpoint, servus::Serializable& object )
+bool Server::handle(const std::string& endpoint, servus::Serializable& object)
 {
-    return handlePUT( endpoint, object ) && handleGET( endpoint, object );
+    return handlePUT(endpoint, object) && handleGET(endpoint, object);
 }
 
-bool Server::handle( const Method action, const std::string& endpoint,
-                     RESTFunc func )
+bool Server::handle(const Method action, const std::string& endpoint,
+                    RESTFunc func)
 {
-    return _impl->handle( action, endpoint, func );
+    return _impl->handle(action, endpoint, func);
 }
 
-bool Server::remove( const servus::Serializable& object )
+bool Server::remove(const servus::Serializable& object)
 {
-    return _impl->remove( object );
+    return _impl->remove(object);
 }
 
-bool Server::remove( const std::string& endpoint )
+bool Server::remove(const std::string& endpoint)
 {
-    return _impl->remove( endpoint );
+    return _impl->remove(endpoint);
 }
 
-bool Server::handlePUT( servus::Serializable& object )
+bool Server::handlePUT(servus::Serializable& object)
 {
-    return _impl->handlePUT( _convertEndpointName( object.getTypeName( )),
-                             object );
+    return _impl->handlePUT(_convertEndpointName(object.getTypeName()), object);
 }
 
-bool Server::handlePUT( const std::string& endpoint,
-                        servus::Serializable& object )
+bool Server::handlePUT(const std::string& endpoint,
+                       servus::Serializable& object)
 {
-    return _impl->handlePUT( endpoint, object );
+    return _impl->handlePUT(endpoint, object);
 }
 
-bool Server::handlePUT( const std::string& endpoint, const PUTFunc& func )
+bool Server::handlePUT(const std::string& endpoint, const PUTFunc& func)
 {
-    return _impl->handlePUT( endpoint, "",
-                             [func]( const std::string& ) { return func(); } );
+    return _impl->handlePUT(endpoint, "",
+                            [func](const std::string&) { return func(); });
 }
 
-bool Server::handlePUT( const std::string& endpoint, const std::string& schema,
-                        const PUTFunc& func )
+bool Server::handlePUT(const std::string& endpoint, const std::string& schema,
+                       const PUTFunc& func)
 {
-    return _impl->handlePUT( endpoint, schema,
-                             [func]( const std::string& ) { return func(); } );
+    return _impl->handlePUT(endpoint, schema,
+                            [func](const std::string&) { return func(); });
 }
 
-bool Server::handlePUT( const std::string& endpoint,
-                        const PUTPayloadFunc& func )
+bool Server::handlePUT(const std::string& endpoint, const PUTPayloadFunc& func)
 {
-    return _impl->handlePUT( endpoint, "", func );
+    return _impl->handlePUT(endpoint, "", func);
 }
 
-bool Server::handlePUT( const std::string& endpoint,const std::string& schema,
-                        const PUTPayloadFunc& func )
+bool Server::handlePUT(const std::string& endpoint, const std::string& schema,
+                       const PUTPayloadFunc& func)
 {
-    return _impl->handlePUT( endpoint, schema, func );
+    return _impl->handlePUT(endpoint, schema, func);
 }
 
-bool Server::handleGET( const servus::Serializable& object )
+bool Server::handleGET(const servus::Serializable& object)
 {
-    return _impl->handleGET(  _convertEndpointName( object.getTypeName( )),
-                              object );
+    return _impl->handleGET(_convertEndpointName(object.getTypeName()), object);
 }
 
-bool Server::handleGET( const std::string& endpoint,
-                        const servus::Serializable& object )
+bool Server::handleGET(const std::string& endpoint,
+                       const servus::Serializable& object)
 {
-    return _impl->handleGET( endpoint, object );
+    return _impl->handleGET(endpoint, object);
 }
 
-bool Server::handleGET( const std::string& endpoint, const GETFunc& func )
+bool Server::handleGET(const std::string& endpoint, const GETFunc& func)
 {
-    return _impl->handleGET( endpoint, "", func );
+    return _impl->handleGET(endpoint, "", func);
 }
 
-bool Server::handleGET( const std::string& endpoint, const std::string& schema,
-                        const GETFunc& func )
+bool Server::handleGET(const std::string& endpoint, const std::string& schema,
+                       const GETFunc& func)
 {
-    return _impl->handleGET( endpoint, schema, func );
+    return _impl->handleGET(endpoint, schema, func);
 }
 
-std::string Server::getSchema( const servus::Serializable& object ) const
+std::string Server::getSchema(const servus::Serializable& object) const
 {
-    const auto endpoint = _convertEndpointName( object.getTypeName( ));
-    return _impl->getSchema( endpoint );
+    const auto endpoint = _convertEndpointName(object.getTypeName());
+    return _impl->getSchema(endpoint);
 }
 
-std::string Server::getSchema( const std::string& endpoint ) const
+std::string Server::getSchema(const std::string& endpoint) const
 {
-    return _impl->getSchema( endpoint );
+    return _impl->getSchema(endpoint);
 }
 
-void Server::addSockets( std::vector< detail::Socket >& entries )
+void Server::addSockets(std::vector<detail::Socket>& entries)
 {
-    _impl->addSockets( entries );
+    _impl->addSockets(entries);
 }
 
-void Server::process( detail::Socket&, const uint32_t )
+void Server::process(detail::Socket&, const uint32_t)
 {
     _impl->process();
 }
-
 }
 }

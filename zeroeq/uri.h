@@ -12,7 +12,6 @@
 
 namespace zeroeq
 {
-
 /**
  * Enhances servus::URI to guarantee the existance of a schema and to allow
  * construction of [host][:port] URIs from string.
@@ -25,33 +24,32 @@ public:
 
     ZEROEQ_API ~URI();
 
-    ZEROEQ_API URI( const URI& from );
+    ZEROEQ_API URI(const URI& from);
 
     /** Create URI from string, set schema to "tcp" if empty */
-    ZEROEQ_API explicit URI( const std::string& uri );
+    ZEROEQ_API explicit URI(const std::string& uri);
 
     /** Create URI from string, set schema to "tcp" if empty */
-    ZEROEQ_API explicit URI( const char* uri );
+    ZEROEQ_API explicit URI(const char* uri);
 
     /** Convert from servus::URI, set schema to "tcp" if empty */
-    ZEROEQ_API explicit URI( const servus::URI& from );
+    ZEROEQ_API explicit URI(const servus::URI& from);
 
-    ZEROEQ_API URI& operator = ( const URI& rhs );
+    ZEROEQ_API URI& operator=(const URI& rhs);
 
     /* Convert from servus::URI, set schema to "tcp" if empty */
-    ZEROEQ_API URI& operator = ( const servus::URI& rhs );
+    ZEROEQ_API URI& operator=(const servus::URI& rhs);
 
-    ZEROEQ_API bool operator == ( const URI& rhs ) const;
+    ZEROEQ_API bool operator==(const URI& rhs) const;
 
-    ZEROEQ_API bool operator == ( const servus::URI& rhs ) const;
+    ZEROEQ_API bool operator==(const servus::URI& rhs) const;
 
-    ZEROEQ_API bool operator != ( const URI& rhs ) const;
+    ZEROEQ_API bool operator!=(const URI& rhs) const;
 
-    ZEROEQ_API bool operator != ( const servus::URI& rhs ) const;
+    ZEROEQ_API bool operator!=(const servus::URI& rhs) const;
 
     /** Convert this URI to a servus::URI */
     const servus::URI& toServusURI() const { return *this; }
-
     /** @name servus::URI API */
     //@{
     using servus::URI::getScheme;
@@ -64,7 +62,7 @@ public:
     //@}
 };
 
-inline std::ostream& operator << ( std::ostream& os, const URI& uri )
+inline std::ostream& operator<<(std::ostream& os, const URI& uri)
 {
     return os << uri.toServusURI();
 }
@@ -73,9 +71,9 @@ inline std::ostream& operator << ( std::ostream& os, const URI& uri )
 
 namespace std
 {
-inline std::string to_string( const zeroeq::URI& uri )
+inline std::string to_string(const zeroeq::URI& uri)
 {
-    return to_string( uri.toServusURI( ));
+    return to_string(uri.toServusURI());
 }
 }
 

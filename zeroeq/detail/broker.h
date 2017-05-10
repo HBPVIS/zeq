@@ -17,39 +17,39 @@
 // getlogin()
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN
-#  include <windows.h>
-#  include <Lmcons.h>
+#include <Lmcons.h>
+#include <windows.h>
 #else
-#  include <limits.h>
-#  include <unistd.h>
+#include <limits.h>
+#include <unistd.h>
 #endif
 
 namespace
 {
-inline std::string buildZmqURI( const std::string& schema,
-                                std::string host, const uint16_t port )
+inline std::string buildZmqURI(const std::string& schema, std::string host,
+                               const uint16_t port)
 {
-    if( host.empty( ))
+    if (host.empty())
         host = "*";
 
-    const std::string zmqURI( schema + "://" + host );
-    if( port == 0 ) // zmq expects host:* instead of host:0
+    const std::string zmqURI(schema + "://" + host);
+    if (port == 0) // zmq expects host:* instead of host:0
         return zmqURI + ":*";
 
-    return zmqURI + ":" + std::to_string( int( port ));
+    return zmqURI + ":" + std::to_string(int(port));
 }
 
-inline std::string buildZmqURI( const zeroeq::URI& uri )
+inline std::string buildZmqURI(const zeroeq::URI& uri)
 {
-    return buildZmqURI( uri.getScheme(), uri.getHost(), uri.getPort( ));
+    return buildZmqURI(uri.getScheme(), uri.getHost(), uri.getPort());
 }
 
 inline std::string getUserName()
 {
 #ifdef _MSC_VER
-    char user[UNLEN+1];
-    DWORD userLength = UNLEN+1;
-    GetUserName( user, &userLength );
+    char user[UNLEN + 1];
+    DWORD userLength = UNLEN + 1;
+    GetUserName(user, &userLength);
 #else
     const char* user = getlogin();
 #endif
@@ -58,10 +58,9 @@ inline std::string getUserName()
 
 inline std::string getDefaultSession()
 {
-    const char* session = getenv( ENV_SESSION.c_str( ));
+    const char* session = getenv(ENV_SESSION.c_str());
     return session && strcmp(session, "") != 0 ? session : getUserName();
 }
-
 }
 
 #endif

@@ -11,8 +11,8 @@
 #include <zeroeq/http/request.h>
 #include <zeroeq/http/response.h> // used inline
 
-#include <zeroeq/receiver.h> // base class
 #include <zeroeq/log.h>
+#include <zeroeq/receiver.h> // base class
 
 #include <future>
 
@@ -21,18 +21,17 @@ namespace zeroeq
 /** HTTP protocol support. */
 namespace http
 {
-
 /** HTTP PUT callback w/o payload, return reply success. */
-using PUTFunc = std::function< bool() >;
+using PUTFunc = std::function<bool()>;
 
 /** HTTP PUT callback w/ JSON payload, return reply success. */
-using PUTPayloadFunc = std::function< bool( const std::string& ) >;
+using PUTPayloadFunc = std::function<bool(const std::string&)>;
 
 /** HTTP GET callback to return JSON reply. */
-using GETFunc = std::function< std::string() >;
+using GETFunc = std::function<std::string()>;
 
 /** HTTP REST callback with Request parameter returning a Response future. */
-using RESTFunc = std::function< std::future< Response >( const Request& ) >;
+using RESTFunc = std::function<std::future<Response>(const Request&)>;
 
 /**
  * Serves HTTP GET and PUT requests for servus::Serializable objects.
@@ -65,12 +64,14 @@ public:
      * @param shared a shared receiver, see Receiver constructor.
      * @throw std::runtime_error on malformed URI or connection issues.
      */
-    ZEROEQHTTP_API Server( const URI& uri, Receiver& shared );
-    ZEROEQHTTP_API explicit Server( const URI& uri );
-    ZEROEQHTTP_API explicit Server( Receiver& shared );
+    ZEROEQHTTP_API Server(const URI& uri, Receiver& shared);
+    ZEROEQHTTP_API explicit Server(const URI& uri);
+    ZEROEQHTTP_API explicit Server(Receiver& shared);
     ZEROEQHTTP_API Server();
-    ZEROEQHTTP_API explicit Server( Server& shared )
-        : Server( static_cast< Receiver& >( shared )) {}
+    ZEROEQHTTP_API explicit Server(Server& shared)
+        : Server(static_cast<Receiver&>(shared))
+    {
+    }
     ZEROEQHTTP_API ~Server();
 
     /**
@@ -83,10 +84,10 @@ public:
      *   and a randomly chosen port
      */
     ZEROEQHTTP_API
-    static std::unique_ptr< Server > parse( int argc, const char* const* argv);
+    static std::unique_ptr<Server> parse(int argc, const char* const* argv);
     ZEROEQHTTP_API
-    static std::unique_ptr< Server > parse( int argc, const char* const* argv,
-                                            Receiver& shared );
+    static std::unique_ptr<Server> parse(int argc, const char* const* argv,
+                                         Receiver& shared);
     /**
      * Get the publisher URI.
      *
@@ -120,7 +121,7 @@ public:
      * @return true if subscription was successful, false otherwise
      * @sa Request
      */
-    bool handle( Method method, const std::string& endpoint, RESTFunc func );
+    bool handle(Method method, const std::string& endpoint, RESTFunc func);
 
     /** @name Object registration for PUT and GET requests */
     //@{
@@ -130,8 +131,10 @@ public:
      * @param object the object to update and serve on receive()
      * @return true if subscription was successful, false otherwise
      */
-    bool handle( servus::Serializable& object )
-        { return handlePUT( object ) && handleGET( object ); }
+    bool handle(servus::Serializable& object)
+    {
+        return handlePUT(object) && handleGET(object);
+    }
 
     /**
      * @overload
@@ -139,14 +142,14 @@ public:
      * @param endpoint use this as the URL endpoint instead of the default
      *                 servus::Serializable::getTypeName()
      */
-    ZEROEQHTTP_API bool handle( const std::string& endpoint,
-                                servus::Serializable& object );
+    ZEROEQHTTP_API bool handle(const std::string& endpoint,
+                               servus::Serializable& object);
 
     /** Remove PUT and GET handling for given object. */
-    ZEROEQHTTP_API bool remove( const servus::Serializable& object );
+    ZEROEQHTTP_API bool remove(const servus::Serializable& object);
 
     /** Remove all handling for given endpoint. */
-    ZEROEQHTTP_API bool remove( const std::string& endpoint );
+    ZEROEQHTTP_API bool remove(const std::string& endpoint);
 
     /**
      * Subscribe a serializable object to receive updates from HTTP PUT
@@ -161,7 +164,7 @@ public:
      * @param object the object to update on receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQHTTP_API bool handlePUT( servus::Serializable& object );
+    ZEROEQHTTP_API bool handlePUT(servus::Serializable& object);
 
     /**
      * @overload
@@ -169,20 +172,21 @@ public:
      * @param endpoint use this as the URL endpoint instead of the default
      *                 servus::Serializable::getTypeName()
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
-                                   servus::Serializable& object );
+    ZEROEQHTTP_API bool handlePUT(const std::string& endpoint,
+                                  servus::Serializable& object);
 
     /**
      * Subscribe an endpoint to receive HTTP PUT requests.
      *
-     * Every receival of the endpoint will call the registered callback function.
+     * Every receival of the endpoint will call the registered callback
+     * function.
      *
      * @param endpoint the endpoint to receive PUT requests for during receive()
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
     ZEROEQHTTP_API
-    bool handlePUT( const std::string& endpoint, const PUTFunc& func );
+    bool handlePUT(const std::string& endpoint, const PUTFunc& func);
 
     /**
      * @overload
@@ -190,21 +194,22 @@ public:
      * @param schema describes data layout of endpoint
      * @param func the callback function for serving the PUT request
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
-                                   const std::string& schema,
-                                   const PUTFunc& func );
+    ZEROEQHTTP_API bool handlePUT(const std::string& endpoint,
+                                  const std::string& schema,
+                                  const PUTFunc& func);
 
     /**
      * Subscribe an endpoint to receive HTTP PUT requests with payload.
      *
-     * Every receival of the endpoint will call the registered callback function.
+     * Every receival of the endpoint will call the registered callback
+     * function.
      *
      * @param endpoint the endpoint to receive PUT requests for during receive()
      * @param func the callback function for serving the PUT request
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
-                                   const PUTPayloadFunc& func );
+    ZEROEQHTTP_API bool handlePUT(const std::string& endpoint,
+                                  const PUTPayloadFunc& func);
 
     /**
      * @overload
@@ -212,9 +217,9 @@ public:
      * @param schema describes data layout of the endpoint
      * @param func the callback function for serving the PUT request
      */
-    ZEROEQHTTP_API bool handlePUT( const std::string& endpoint,
-                                   const std::string& schema,
-                                   const PUTPayloadFunc& func );
+    ZEROEQHTTP_API bool handlePUT(const std::string& endpoint,
+                                  const std::string& schema,
+                                  const PUTPayloadFunc& func);
     /**
      * Subscribe a serializable object to serve HTTP GET requests.
      *
@@ -227,7 +232,7 @@ public:
      * @param object the object to serve during receive()
      * @return true if subscription was successful, false otherwise
      */
-    ZEROEQHTTP_API bool handleGET( const servus::Serializable& object );
+    ZEROEQHTTP_API bool handleGET(const servus::Serializable& object);
 
     /**
      * @overload
@@ -235,8 +240,8 @@ public:
      * @param endpoint use this as the URL endpoint instead of the default
      *                 servus::Serializable::getTypeName()
      */
-    ZEROEQHTTP_API bool handleGET( const std::string& endpoint,
-                                   const servus::Serializable& object );
+    ZEROEQHTTP_API bool handleGET(const std::string& endpoint,
+                                  const servus::Serializable& object);
 
     /**
      * Subscribe an endpoint to serve HTTP GET requests.
@@ -249,7 +254,7 @@ public:
      * @return true if subscription was successful, false otherwise
      */
     ZEROEQHTTP_API
-    bool handleGET( const std::string& endpoint, const GETFunc& func );
+    bool handleGET(const std::string& endpoint, const GETFunc& func);
 
     /**
      * @overload
@@ -258,28 +263,31 @@ public:
      * @param func the callback function for serving the GET request
      */
     ZEROEQHTTP_API
-    bool handleGET( const std::string& endpoint, const std::string& schema,
-                    const GETFunc& func );
+    bool handleGET(const std::string& endpoint, const std::string& schema,
+                   const GETFunc& func);
 
     /**
      * @return the registered schema for the given object, or empty if not
      *         registered.
      */
     ZEROEQHTTP_API
-    std::string getSchema( const servus::Serializable& object ) const;
+    std::string getSchema(const servus::Serializable& object) const;
 
     /** @overload */
-    ZEROEQHTTP_API std::string getSchema( const std::string& endpoint ) const;
+    ZEROEQHTTP_API std::string getSchema(const std::string& endpoint) const;
     //@}
 
 private:
     class Impl;
-    std::unique_ptr< Impl > _impl;
+    std::unique_ptr<Impl> _impl;
 
     // Receiver API
-    void addSockets( std::vector< detail::Socket >& entries ) final;
-    void process( detail::Socket& socket, uint32_t timeout ) final;
-    void addConnection( const std::string& ) final { ZEROEQDONTCALL; } // LCOV_EXCL_LINE
+    void addSockets(std::vector<detail::Socket>& entries) final;
+    void process(detail::Socket& socket, uint32_t timeout) final;
+    void addConnection(const std::string&) final
+    {
+        ZEROEQDONTCALL;
+    } // LCOV_EXCL_LINE
 };
 }
 }

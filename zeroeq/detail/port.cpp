@@ -9,12 +9,10 @@ namespace zeroeq
 {
 namespace detail
 {
-
-uint16_t getPort( const std::string& name )
+uint16_t getPort(const std::string& name)
 {
-    const uint128_t& md5 = make_uint128( name );
-    return 1024 + (md5.low() % (65535-1024));
+    const uint128_t& md5 = make_uint128(name);
+    return 1024 + (md5.low() % (65535 - 1024));
 }
-
 }
 }

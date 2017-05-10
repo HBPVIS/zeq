@@ -13,14 +13,14 @@ namespace zeroeq
 {
 namespace
 {
-servus::URI createURI( std::string string )
+servus::URI createURI(std::string string)
 {
-    servus::URI uri( string );
-    if( uri.getScheme().empty( ))
+    servus::URI uri(string);
+    if (uri.getScheme().empty())
     {
-        if( string.empty() || string[0] == ':' )
-            string = std::string( "*" ) + string;
-        return servus::URI( DEFAULT_SCHEMA + "://" + string );
+        if (string.empty() || string[0] == ':')
+            string = std::string("*") + string;
+        return servus::URI(DEFAULT_SCHEMA + "://" + string);
     }
 
     return uri;
@@ -30,71 +30,70 @@ servus::URI createURI( std::string string )
 URI::URI()
     : servus::URI()
 {
-    setScheme( DEFAULT_SCHEMA );
+    setScheme(DEFAULT_SCHEMA);
 }
 
 URI::~URI()
 {
 }
 
-URI::URI( const std::string& uri )
-    : servus::URI( createURI( uri.c_str( )))
+URI::URI(const std::string& uri)
+    : servus::URI(createURI(uri.c_str()))
 {
 }
 
-URI::URI( const char* uri )
-    : servus::URI( createURI( uri ))
+URI::URI(const char* uri)
+    : servus::URI(createURI(uri))
 {
 }
 
-URI::URI( const URI& from )
-    : servus::URI( from )
+URI::URI(const URI& from)
+    : servus::URI(from)
 {
-    assert( !getScheme().empty( ));
+    assert(!getScheme().empty());
 }
 
-URI::URI( const servus::URI& from )
-    : servus::URI( from )
+URI::URI(const servus::URI& from)
+    : servus::URI(from)
 {
-    if( getScheme().empty( ))
-        setScheme( DEFAULT_SCHEMA );
+    if (getScheme().empty())
+        setScheme(DEFAULT_SCHEMA);
 }
 
-URI& URI::operator = ( const URI& rhs )
+URI& URI::operator=(const URI& rhs)
 {
-    if( this == &rhs )
+    if (this == &rhs)
         return *this;
-    servus::URI::operator =( rhs );
-    assert( !getScheme().empty( ));
+    servus::URI::operator=(rhs);
+    assert(!getScheme().empty());
     return *this;
 }
 
-URI& URI::operator = ( const servus::URI& rhs )
+URI& URI::operator=(const servus::URI& rhs)
 {
-    servus::URI::operator =( rhs );
-    if( getScheme().empty( ))
-        setScheme( DEFAULT_SCHEMA );
+    servus::URI::operator=(rhs);
+    if (getScheme().empty())
+        setScheme(DEFAULT_SCHEMA);
     return *this;
 }
 
-bool URI::operator == ( const URI& rhs ) const
+bool URI::operator==(const URI& rhs) const
 {
-    return servus::URI::operator ==( rhs );
+    return servus::URI::operator==(rhs);
 }
 
-bool URI::operator == ( const servus::URI& rhs ) const
+bool URI::operator==(const servus::URI& rhs) const
 {
-    return servus::URI::operator ==( rhs );
+    return servus::URI::operator==(rhs);
 }
 
-bool URI::operator != ( const URI& rhs ) const
+bool URI::operator!=(const URI& rhs) const
 {
-    return servus::URI::operator !=( rhs );
+    return servus::URI::operator!=(rhs);
 }
 
-bool URI::operator != ( const servus::URI& rhs ) const
+bool URI::operator!=(const servus::URI& rhs) const
 {
-    return servus::URI::operator !=( rhs );
+    return servus::URI::operator!=(rhs);
 }
-
 }

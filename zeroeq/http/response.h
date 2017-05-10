@@ -12,7 +12,6 @@ namespace zeroeq
 {
 namespace http
 {
-
 /** HTTP headers which can be used in a Response. */
 enum class Header
 {
@@ -63,30 +62,34 @@ struct Response
     std::string body;
 
     /** HTTP message headers. */
-    std::map< Header, std::string > headers;
+    std::map<Header, std::string> headers;
 
     /** Construct a Response with a given return code and payload. */
-    Response( const Code code_ = Code::OK,
-              const std::string& body_ = std::string( ))
-        : code{ code_ }, body{ body_ } {}
+    Response(const Code code_ = Code::OK,
+             const std::string& body_ = std::string())
+        : code{code_}
+        , body{body_}
+    {
+    }
 
     /** Construct a Response with a given code, payload and content type. */
-    Response( const Code code_, const std::string& body_,
-              const std::string& contentType )
-        : code{ code_ }
-        , body{ body_ }
-        , headers{{ Header::CONTENT_TYPE, contentType }}
-    {}
+    Response(const Code code_, const std::string& body_,
+             const std::string& contentType)
+        : code{code_}
+        , body{body_}
+        , headers{{Header::CONTENT_TYPE, contentType}}
+    {
+    }
 
     /** Construct a Response with a given code, payload and map of headers. */
-    Response( const Code code_, const std::string& body_,
-              std::map< Header, std::string > headers_ )
-        : code{ code_ }
-        , body{ body_ }
-        , headers{{ std::move( headers_ )}}
-    {}
+    Response(const Code code_, const std::string& body_,
+             std::map<Header, std::string> headers_)
+        : code{code_}
+        , body{body_}
+        , headers{{std::move(headers_)}}
+    {
+    }
 };
-
 }
 }
 

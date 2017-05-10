@@ -6,8 +6,8 @@
 #ifndef ZEROEQ_CONNECTION_BROKER_H
 #define ZEROEQ_CONNECTION_BROKER_H
 
-#include <zeroeq/receiver.h> // base class
 #include <zeroeq/log.h>
+#include <zeroeq/receiver.h> // base class
 
 namespace zeroeq
 {
@@ -25,7 +25,10 @@ namespace zeroeq
  */
 namespace connection
 {
-namespace detail { class Broker; }
+namespace detail
+{
+class Broker;
+}
 
 /**
  * Brokers subscription requests for a zeroeq::Receiver.
@@ -37,7 +40,7 @@ class Broker : public Receiver
 public:
     enum PortSelection
     {
-        PORT_FIXED, //!< Use only the fixed port for named brokers
+        PORT_FIXED,          //!< Use only the fixed port for named brokers
         PORT_FIXED_OR_RANDOM //!< Fall back to a random port on failure.
     };
 
@@ -61,8 +64,8 @@ public:
      * @param mode the allocation strategy if the fixed port is unavailable.
      * @throw std::runtime_error when the zmq setup failed.
      */
-    ZEROEQ_API Broker( const std::string& name, Receiver& receiver,
-                       const PortSelection mode );
+    ZEROEQ_API Broker(const std::string& name, Receiver& receiver,
+                      const PortSelection mode);
 
     /**
      * Create a new subscription broker.
@@ -78,7 +81,7 @@ public:
      * @param receiver the Receiver to manage.
      * @throw std::runtime_error when the zmq setup failed.
      */
-    ZEROEQ_API Broker( const std::string& address, Receiver& receiver );
+    ZEROEQ_API Broker(const std::string& address, Receiver& receiver);
 
     /** Destroy this broker. */
     ZEROEQ_API ~Broker();
@@ -89,11 +92,10 @@ private:
     detail::Broker* const _impl;
 
     // Receiver API
-    void addSockets( std::vector< zeroeq::detail::Socket >& entries ) final;
-    void process( zeroeq::detail::Socket& socket, uint32_t timeout ) final;
-    void addConnection( const std::string& ) final { ZEROEQDONTCALL; } // LCOV_EXCL_LINE
+    void addSockets(std::vector<zeroeq::detail::Socket>& entries) final;
+    void process(zeroeq::detail::Socket& socket, uint32_t timeout) final;
+    void addConnection(const std::string&) final { ZEROEQDONTCALL; }
 };
-
 }
 }
 #endif
