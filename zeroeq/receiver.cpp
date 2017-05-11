@@ -176,6 +176,13 @@ bool Receiver::receive(const uint32_t timeout)
     return _impl->receive(timeout);
 }
 
+// LCOV_EXCL_START
+void Receiver::addConnection(const std::string&)
+{
+    ZEROEQDONTCALL;
+}
+// LCOV_EXCL_STOP
+
 void* Receiver::getZMQContext()
 {
     return _impl->getZMQContext();

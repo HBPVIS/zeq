@@ -96,7 +96,7 @@ protected:
      *
      * @param uri the ZeroMQ address to connect to.
      */
-    virtual void addConnection(const std::string& uri) = 0;
+    ZEROEQ_API virtual void addConnection(const std::string& uri);
     friend class connection::detail::Broker;
 
     void* getZMQContext(); //!< @internal returns the ZeroMQ context

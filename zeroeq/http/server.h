@@ -284,10 +284,6 @@ private:
     // Receiver API
     void addSockets(std::vector<detail::Socket>& entries) final;
     void process(detail::Socket& socket, uint32_t timeout) final;
-    void addConnection(const std::string&) final
-    {
-        ZEROEQDONTCALL;
-    } // LCOV_EXCL_LINE
 };
 }
 }
