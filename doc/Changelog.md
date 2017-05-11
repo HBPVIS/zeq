@@ -2,6 +2,8 @@
 
 # git master
 
+* [208](https://github.com/HBPVIS/ZeroEQ/pull/208):
+  Zeroconf announce for http::Server
 * [207](https://github.com/HBPVIS/ZeroEQ/pull/207):
   Unify name resolution between Publisher and http::Server
 * [203](https://github.com/HBPVIS/ZeroEQ/pull/203):

@@ -94,7 +94,7 @@ public:
      * @sa Subscriber()
      * @param shared another receiver to share data reception with
      */
-    ZEROEQ_API Subscriber(Receiver& shared);
+    ZEROEQ_API explicit Subscriber(Receiver& shared);
 
     /**
      * Create a shared subscriber which subscribes to publisher(s) from the

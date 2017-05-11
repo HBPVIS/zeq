@@ -28,6 +28,9 @@ namespace http
  * insensitive. For example, zerobuf::render::Camera is served at
  * 'GET|PUT [uri]/zerobuf/render/camera'.
  *
+ * Announces itself if a zeroconf implementation is available, including
+ * "Type=ZeroEQ" in the zeroconf record.
+ *
  * Not thread safe.
  *
  * Example: @include tests/http/server.cpp

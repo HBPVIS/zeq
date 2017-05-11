@@ -11,6 +11,7 @@
 #include "helpers.h"
 #include "requestHandler.h"
 
+#include "../detail/application.h"
 #include "../detail/broker.h"
 #include "../detail/sender.h"
 #include "../detail/socket.h"
@@ -19,6 +20,7 @@
 #include "jsoncpp/json/json.h"
 
 #include <servus/serializable.h>
+#include <servus/servus.h>
 
 // for NI_MAXHOST
 #ifdef _WIN32
@@ -78,6 +80,7 @@ std::string _convertEndpointName(const std::string& endpoint)
 const std::string JSON_TYPE = "application/json";
 const std::string REQUEST_REGISTRY = "registry";
 const std::string REQUEST_SCHEMA = "schema";
+const std::string HTTP_SERVER_SERVICE = "_http._tcp"; // Standard HTTP service
 
 void _checkEndpointName(const std::string& endpoint)
 {
@@ -113,7 +116,7 @@ std::string _getHost(const zeroeq::URI& uri)
         return "0.0.0.0";
     return uri.getHost();
 }
-} // unnamed namespace
+} // anonymous namespace
 
 namespace zeroeq
 {
@@ -122,12 +125,7 @@ namespace http
 class Server::Impl : public detail::Sender
 {
 public:
-    Impl()
-        : Impl(URI())
-    {
-    }
-
-    Impl(const URI& uri_)
+    Impl(const URI& uri_, const std::string& session)
         : detail::Sender(URI(_getInprocURI()), 0, ZMQ_PAIR)
         , _requestHandler(_getInprocURI(), getContext())
         , _httpOptions(_requestHandler)
@@ -135,6 +133,8 @@ public:
                           .port(std::to_string(int(uri_.getPort())))
                           .protocol_family(HTTPServer::options::ipv4)
                           .reuse_address(true))
+        , _service(HTTP_SERVER_SERVICE)
+        , _session(session == DEFAULT_SESSION ? getDefaultSession() : session)
     {
         if (::zmq_bind(socket, _getInprocURI().c_str()) == -1)
         {
@@ -179,6 +179,25 @@ public:
         if (uri_.getHost() != uri.getHost() || uri_.getPort() == 0)
             ZEROEQINFO << "HTTP server bound to " << uri.getHost() << ":"
                        << uri.getPort() << std::endl;
+
+        if (!servus::Servus::isAvailable())
+            return;
+
+        _service.set(KEY_INSTANCE, detail::Sender::getUUID().getString());
+        _service.set(KEY_USER, getUserName());
+        _service.set(KEY_APPLICATION, detail::getApplicationName());
+        _service.set("Type", "ZeroEQ");
+        if (!_session.empty())
+            _service.set(KEY_SESSION, _session);
+
+        const servus::Servus::Result& result =
+            _service.announce(uri.getPort(), getAddress());
+
+        if (!result)
+        {
+            ZEROEQTHROW(std::runtime_error("Zeroconf announce failed: " +
+                                           result.getString()));
+        }
     }
 
     ~Impl()
@@ -308,7 +327,7 @@ public:
         ::zmq_send(socket, &done, sizeof(done), 0);
     }
 
-protected:
+private:
     // key stores endpoints of Serializable objects lower-case, hyphenated,
     // with '/' separators
     // must be an ordered map in order to iterate from the most specific path
@@ -322,6 +341,9 @@ protected:
     HTTPServer::options _httpOptions;
     HTTPServer _httpServer;
     std::unique_ptr<std::thread> _httpThread;
+
+    servus::Servus _service;
+    const std::string _session;
 
     std::string _getInprocURI() const
     {
@@ -464,25 +486,25 @@ std::string _getServerParameter(const int argc, const char* const* argv)
 
 Server::Server(const URI& uri, Receiver& shared)
     : Receiver(shared)
-    , _impl(new Impl(uri))
+    , _impl(new Impl(uri, DEFAULT_SESSION))
 {
 }
 
 Server::Server(const URI& uri)
     : Receiver()
-    , _impl(new Impl(uri))
+    , _impl(new Impl(uri, DEFAULT_SESSION))
 {
 }
 
 Server::Server(Receiver& shared)
     : Receiver(shared)
-    , _impl(new Impl)
+    , _impl(new Impl(URI(), DEFAULT_SESSION))
 {
 }
 
 Server::Server()
     : Receiver()
-    , _impl(new Impl)
+    , _impl(new Impl(URI(), DEFAULT_SESSION))
 {
 }
 

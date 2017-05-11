@@ -9,20 +9,19 @@
 #define BOOST_TEST_MODULE http_server
 
 #include <servus/serializable.h>
+#include <zeroeq/subscriber.h>
+#include <zeroeq/uri.h>
+
 #include <zeroeq/http/helpers.h>
 #include <zeroeq/http/request.h>
 #include <zeroeq/http/response.h>
 #include <zeroeq/http/server.h>
-#include <zeroeq/subscriber.h>
-#include <zeroeq/uri.h>
-
-#include <boost/test/unit_test.hpp>
-
-#include <map>
-#include <thread>
 
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/protocol/http/server.hpp>
+#include <boost/test/unit_test.hpp>
+#include <map>
+#include <thread>
 
 namespace
 {
@@ -467,15 +466,16 @@ BOOST_AUTO_TEST_CASE(get_event)
 BOOST_AUTO_TEST_CASE(shared)
 {
     bool running = true;
-    zeroeq::Subscriber subscriber;
-    zeroeq::http::Server server1(subscriber);
+    zeroeq::Subscriber subscriber1;
+    zeroeq::http::Server server1(subscriber1);
+    zeroeq::Subscriber subscriber2(server1);
     zeroeq::http::Server server2(server1);
     Foo foo;
     server2.handleGET(foo);
 
     std::thread thread([&]() {
         while (running)
-            subscriber.receive(100);
+            subscriber2.receive(100);
     });
 
     Client client1(server1.getURI());

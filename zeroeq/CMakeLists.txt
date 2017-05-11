@@ -14,6 +14,7 @@ set(ZEROEQ_PUBLIC_HEADERS
   uri.h)
 
 set(ZEROEQ_HEADERS
+  detail/application.h
   detail/broker.h
   detail/constants.h
   detail/port.h
