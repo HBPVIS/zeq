@@ -5,9 +5,10 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(ZeroEQ VERSION 0.8.0)
 set(ZeroEQ_VERSION_ABI 8)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake
-                              ${CMAKE_SOURCE_DIR}/CMake/common)
-include(GitExternal)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/common)
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/CMake/common/Common.cmake)
+  message(FATAL_ERROR "CMake/common missing, run: git submodule update --init")
+endif()
 
 set(ZEROEQ_DEB_DEPENDS
   libboost-test-dev
@@ -51,7 +52,10 @@ set(LCOV_EXCLUDE "zeroeq/http/jsoncpp/*")
 add_subdirectory(zeroeq)
 add_subdirectory(tests)
 
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/README.md")
+set(ZEROEQ_PACKAGE_DEB_DEPENDS ${ZEROEQ_DEB_DEPENDS})
+include(CommonCPack)
+
 set(DOXYGEN_MAINPAGE_MD README.md)
 set(DOXYGEN_EXTRA_INPUT ${PROJECT_SOURCE_DIR}/README.md)
-include(CPackConfig)
 include(DoxygenRule)

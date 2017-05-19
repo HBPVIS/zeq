@@ -47,9 +47,9 @@ ZeroEQ requires the following external, pre-installed dependencies:
 
 Building from source is as simple as:
 
-    git clone https://github.com/HBPVIS/ZeroEQ.git
+    git clone --recursive https://github.com/HBPVIS/ZeroEQ.git
     mkdir ZeroEQ/build
     cd ZeroEQ/build
-    cmake -GNinja ..
+    cmake -GNinja -DCLONE_SUBPROJECTS=ON ..
     ninja
 This work has been partially funded by the European Union Seventh Framework Program (FP7/2007­2013) under grant agreement no. 604102 (HBP).

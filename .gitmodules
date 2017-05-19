@@ -1,3 +1,7 @@
+[submodule "CMake/common"]
+	path = CMake/common
+	url = https://github.com/Eyescale/CMake
+	shallow = true
 [submodule "cppnetlib"]
 	path = cppnetlib
 	url = https://github.com/cpp-netlib/cpp-netlib
