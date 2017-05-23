@@ -43,7 +43,7 @@ build environments are tested:
 ZeroEQ requires the following external, pre-installed dependencies:
 
 * ZeroMQ 4.0 or later
-* Boost (tested with 1.54) for unit tests
+* Boost for unit tests; version 1.58 for optional cppnetlib
 
 Building from source is as simple as:
 

@@ -1,6 +1,6 @@
 # Changelog {#Changelog}
 
-# git master
+# Release 0.8 (24-05-2017)
 
 * [210](https://github.com/HBPVIS/ZeroEQ/pull/210):
   http::Server:
@@ -19,6 +19,8 @@
     * use a std::future to avoid blocking the main thread
     * register a single endpoint for collections
     * filter collections using a query string with GET requests
+* [203](https://github.com/HBPVIS/ZeroEQ/pull/203):
+  Upgrade to upstream cppnet-lib 0.13-release
 * [192](https://github.com/HBPVIS/ZeroEQ/pull/192):
   Fix HTTP server segfault when registering an empty endpoint, throw an
   exception instead.

@@ -47,7 +47,7 @@ common_find_package(Servus REQUIRED)
 common_find_package(Threads REQUIRED)
 common_find_package_post()
 
-set(LCOV_EXCLUDE "zeroeq/http/jsoncpp/*")
+set(LCOV_EXCLUDE "zeroeq/http/jsoncpp/*;cppnetlib/boost/network/*;cppnetlib/libs/network/src/uri/*")
 
 add_subdirectory(zeroeq)
 add_subdirectory(tests)
