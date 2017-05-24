@@ -71,11 +71,11 @@ std::string _headerEnumToString(const CorsResponseHeader header)
 {
     switch (header)
     {
-    case CorsResponseHeader::ACCESS_CONTROL_ALLOW_HEADERS:
+    case CorsResponseHeader::access_control_allow_headers:
         return "Access-Control-Allow-Headers";
-    case CorsResponseHeader::ACCESS_CONTROL_ALLOW_METHODS:
+    case CorsResponseHeader::access_control_allow_methods:
         return "Access-Control-Allow-Methods";
-    case CorsResponseHeader::ACCESS_CONTROL_ALLOW_ORIGIN:
+    case CorsResponseHeader::access_control_allow_origin:
         return "Access-Control-Allow-Origin";
     default:
         throw std::logic_error("no such header");

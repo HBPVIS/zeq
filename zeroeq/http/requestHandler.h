@@ -24,9 +24,9 @@ typedef boost::network::http::server<RequestHandler> HTTPServer;
 // HTTP headers for CORS responses
 enum class CorsResponseHeader
 {
-    ACCESS_CONTROL_ALLOW_HEADERS,
-    ACCESS_CONTROL_ALLOW_METHODS,
-    ACCESS_CONTROL_ALLOW_ORIGIN
+    access_control_allow_headers,
+    access_control_allow_methods,
+    access_control_allow_origin
 };
 
 // Contains in/out values for an HTTP request to exchange information between

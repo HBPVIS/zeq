@@ -585,9 +585,9 @@ BOOST_AUTO_TEST_CASE(post_serializable)
     Foo foo;
     server.handle(foo);
 
-    const Response error405{ServerReponse::method_not_allowed,
-                            "",
-                            {{"Allow", "GET, PUT"}}};
+    const Response error405GetPut{ServerReponse::method_not_allowed,
+                                  "",
+                                  {{"Allow", "GET, PUT"}}};
 
     std::thread thread([&]() {
         while (running)
@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE(post_serializable)
     });
 
     Client client(server.getURI());
-    client.checkPOST("/test/foo", jsonPut, error405, __LINE__);
+    client.checkPOST("/test/foo", jsonPut, error405GetPut, __LINE__);
 
     running = false;
     thread.join();

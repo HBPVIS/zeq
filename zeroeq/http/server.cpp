@@ -497,10 +497,10 @@ private:
         }
 
         message.corsResponseHeaders = {
-            {CorsResponseHeader::ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type"},
-            {CorsResponseHeader::ACCESS_CONTROL_ALLOW_METHODS,
+            {CorsResponseHeader::access_control_allow_headers, "Content-Type"},
+            {CorsResponseHeader::access_control_allow_methods,
              _getAllowedMethods(path)},
-            {CorsResponseHeader::ACCESS_CONTROL_ALLOW_ORIGIN, "*"}};
+            {CorsResponseHeader::access_control_allow_origin, "*"}};
         message.response = make_ready_response(Code::OK);
     }
 };
