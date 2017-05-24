@@ -223,7 +223,8 @@ private:
     void _checkImpl(const zeroeq::http::Method method,
                     const std::string& request, const std::string& data,
                     const Response& expected, const int line,
-                    std::map<std::string, std::string> requestHeaders = {})
+                    const std::map<std::string, std::string> requestHeaders =
+                        std::map<std::string, std::string>{})
     {
         HTTPClient::request request_(_baseURL + request);
         for (const auto& h : requestHeaders)
@@ -652,7 +653,7 @@ BOOST_AUTO_TEST_CASE(handle_root)
     zeroeq::http::Server server;
 
     server.handle(zeroeq::http::Method::GET, "",
-                  [this](const zeroeq::http::Request&) {
+                  [](const zeroeq::http::Request&) {
                       return zeroeq::http::make_ready_response(
                           zeroeq::http::Code::OK, "homepage", "text/html");
                   });
@@ -714,7 +715,7 @@ BOOST_AUTO_TEST_CASE(handle_root_and_root_path)
     zeroeq::http::Server server;
     server.handle(zeroeq::http::Method::GET, "/", echoFunc);
     server.handle(zeroeq::http::Method::GET, "",
-                  [this](const zeroeq::http::Request&) {
+                  [](const zeroeq::http::Request&) {
                       return zeroeq::http::make_ready_response(
                           zeroeq::http::Code::OK, "homepage", "text/html");
                   });
