@@ -2,6 +2,10 @@
 
 # git master
 
+* [210](https://github.com/HBPVIS/ZeroEQ/pull/210):
+  http::Server:
+    * Fix handling of CORS preflight requests
+    * Expose OPTIONS http method
 * [208](https://github.com/HBPVIS/ZeroEQ/pull/208):
   Zeroconf announce for http::Server
 * [207](https://github.com/HBPVIS/ZeroEQ/pull/207):

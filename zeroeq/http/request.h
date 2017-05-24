@@ -20,6 +20,7 @@ enum class Method
     PUT,
     PATCH,
     DELETE,
+    OPTIONS,
     ALL //!< @internal, must be last
 };
 

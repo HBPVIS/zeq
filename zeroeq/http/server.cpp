@@ -116,6 +116,13 @@ std::string _getHost(const zeroeq::URI& uri)
         return "0.0.0.0";
     return uri.getHost();
 }
+
+bool _isCorsRequest(const zeroeq::http::Message& message)
+{
+    return message.request.method == zeroeq::http::Method::OPTIONS &&
+           message.accessControlRequestMethod != zeroeq::http::Method::ALL &&
+           !message.origin.empty();
+}
 } // anonymous namespace
 
 namespace zeroeq
@@ -373,6 +380,8 @@ private:
             body[i.first].append("PATCH");
         for (const auto& i : _methods[int(Method::DELETE)])
             body[i.first].append("DELETE");
+        for (const auto& i : _methods[int(Method::OPTIONS)])
+            body[i.first].append("OPTIONS");
         return body.toStyledString();
     }
 
@@ -389,6 +398,8 @@ private:
             methods.append(methods.empty() ? "PATCH" : ", PATCH");
         if (_methods[int(Method::DELETE)].count(endpoint))
             methods.append(methods.empty() ? "DELETE" : ", DELETE");
+        if (_methods[int(Method::OPTIONS)].count(endpoint))
+            methods.append(methods.empty() ? "OPTIONS" : ", OPTIONS");
         return methods;
     }
 
@@ -397,6 +408,12 @@ private:
         const auto method = message.request.method;
         // remove leading '/'
         const auto path = message.request.path.substr(1);
+
+        if (_isCorsRequest(message))
+        {
+            _processCorsRequest(message, path);
+            return;
+        }
 
         if (method == Method::GET)
         {
@@ -464,6 +481,27 @@ private:
         }
 
         message.response = make_ready_response(Code::NOT_FOUND);
+    }
+
+    void _processCorsRequest(Message& message, const std::string& path) const
+    {
+        // In a typical situation, user agents discover via a preflight request
+        // whether a cross-origin resource is prepared to accept requests.
+        // The current implementation accepts all sources for all requests.
+        // More information can be found here: https://www.w3.org/TR/cors
+
+        if (!_methods[int(message.accessControlRequestMethod)].count(path))
+        {
+            message.response = make_ready_response(Code::NOT_SUPPORTED);
+            return;
+        }
+
+        message.corsResponseHeaders = {
+            {CorsResponseHeader::ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type"},
+            {CorsResponseHeader::ACCESS_CONTROL_ALLOW_METHODS,
+             _getAllowedMethods(path)},
+            {CorsResponseHeader::ACCESS_CONTROL_ALLOW_ORIGIN, "*"}};
+        message.response = make_ready_response(Code::OK);
     }
 };
 

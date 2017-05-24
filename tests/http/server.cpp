@@ -46,10 +46,10 @@ struct Response
     }
 
     Response(const ServerReponse::status_type status_, const std::string& body_,
-             const std::map<const std::string, const std::string> map)
+             std::map<const std::string, const std::string> map)
         : status{status_}
         , body{body_}
-        , additionalHeaders{map}
+        , additionalHeaders{std::move(map)}
     {
     }
 };
@@ -78,6 +78,7 @@ const Response response200{ServerReponse::ok, ""};
 const Response response204{ServerReponse::no_content, ""};
 const Response error400{ServerReponse::bad_request, ""};
 const Response error404{ServerReponse::not_found, ""};
+const Response error405{ServerReponse::method_not_allowed, ""};
 
 const std::string jsonGet("Not JSON, just want to see that the is data a-ok");
 const std::string jsonPut("See what my stepbrother jsonGet says");
@@ -141,6 +142,18 @@ public:
         _checkImpl(zeroeq::http::Method::POST, request, data, expected, line);
     }
 
+    void checkCORS(const std::string& request, const std::string& method,
+                   const Response& expected, const int line)
+    {
+        std::map<std::string, std::string> corsRequestHeaders{
+            {"Access-Control-Request-Method", method},
+            {"Access-Control-Request-Headers", "Content-Type"},
+            {"Origin", "http://localhost:1234"}};
+
+        _checkImpl(zeroeq::http::Method::OPTIONS, request, "", expected, line,
+                   corsRequestHeaders);
+    }
+
     void sendGET(const std::string& request)
     {
         HTTPClient::request request_(_baseURL + request);
@@ -150,6 +163,9 @@ public:
 private:
     std::string _baseURL;
 
+    /**
+     * Perform a PATCH request (copied from basic_client_facade::put).
+     */
     response patch(request request, string_type const& body = string_type(),
                    string_type const& content_type = string_type(),
                    body_callback_function_type body_handler =
@@ -186,11 +202,33 @@ private:
                                        body_generator);
     }
 
+    /**
+     * Perform an OPTIONS request (copied from basic_client_facade::get).
+     *
+     * @param[in] request The request object including the URI and headers.
+     * @param[in] body_handler If provided, a callback invoked for parts of the
+     *   response's body.
+     * @returns A response object.
+     * @throw std::exception May throw exceptions on errors, derived from
+     *   `std::exception`.
+     */
+    response options(request const& request,
+                     body_callback_function_type body_handler =
+                         body_callback_function_type())
+    {
+        return pimpl->request_skeleton(request, "OPTIONS", true, body_handler,
+                                       body_generator_function_type());
+    }
+
     void _checkImpl(const zeroeq::http::Method method,
                     const std::string& request, const std::string& data,
-                    const Response& expected, const int line)
+                    const Response& expected, const int line,
+                    std::map<std::string, std::string> requestHeaders = {})
     {
         HTTPClient::request request_(_baseURL + request);
+        for (const auto& h : requestHeaders)
+            request_ << boost::network::header(h.first, h.second);
+
         HTTPClient::response response;
 
         switch (method)
@@ -210,6 +248,9 @@ private:
         case zeroeq::http::Method::DELETE:
             response = delete_(request_);
             break;
+        case zeroeq::http::Method::OPTIONS:
+            response = options(request_);
+            break;
         default:
             throw std::runtime_error("Missing method in test");
         }
@@ -219,17 +260,8 @@ private:
                                 std::to_string(status(response)) + " != " +
                                 std::to_string(int(expected.status)));
 
-        std::map<std::string, std::string> expectedHeaders;
-        expectedHeaders.insert(
-            {"Access-Control-Allow-Headers", "Content-Type"});
-        expectedHeaders.insert({"Access-Control-Allow-Methods",
-                                "GET,POST,PUT,PATCH,DELETE,OPTIONS"});
-        expectedHeaders.insert({"Access-Control-Allow-Origin", "*"});
-
-        expectedHeaders.insert(
-            std::make_pair("Content-Length",
-                           std::to_string(expected.body.size())));
-
+        std::map<std::string, std::string> expectedHeaders{
+            {"Content-Length", std::to_string(expected.body.size())}};
         for (const auto& header : expected.additionalHeaders)
             expectedHeaders.insert(header);
 
@@ -599,7 +631,7 @@ BOOST_AUTO_TEST_CASE(handle_all)
         using Method = zeroeq::http::Method;
         const auto m = Method(method);
         // GET and DELETE should receive => return no payload
-        if (m == Method::GET || m == Method::DELETE)
+        if (m == Method::GET || m == Method::DELETE || m == Method::OPTIONS)
             client.check(m, "/path?query", "", expectedResponseNoBody,
                          __LINE__);
         else
@@ -730,7 +762,7 @@ BOOST_AUTO_TEST_CASE(handle_path)
         using Method = zeroeq::http::Method;
         const auto m = Method(method);
         // GET and DELETE should receive => return no payload
-        if (m == Method::GET || m == Method::DELETE)
+        if (m == Method::GET || m == Method::DELETE || m == Method::OPTIONS)
             client.check(m, "/test/path/suffix", "", expectedResponseNoBody,
                          __LINE__);
         else
@@ -812,6 +844,37 @@ BOOST_AUTO_TEST_CASE(handle_headers)
         client.check(zeroeq::http::Method(method), "/test/path/suffix", "",
                      expectedResponse, __LINE__);
     }
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(cors_preflight_options)
+{
+    bool running = true;
+    zeroeq::http::Server server;
+    Foo foo;
+    server.handle(foo);
+
+    std::thread thread([&]() {
+        while (running)
+            server.receive(100);
+    });
+
+    Client client(server.getURI());
+    const auto request = std::string("/test/foo");
+
+    Response response(ServerReponse::ok, std::string(),
+                      {{"Access-Control-Allow-Headers", "Content-Type"},
+                       {"Access-Control-Allow-Methods", "GET, PUT"},
+                       {"Access-Control-Allow-Origin", "*"}});
+    client.checkCORS(request, "GET", response, __LINE__);
+    client.checkCORS(request, "PUT", response, __LINE__);
+
+    client.checkCORS(request, "POST", error405, __LINE__);
+    client.checkCORS(request, "PATCH", error405, __LINE__);
+    client.checkCORS(request, "DELETE", error405, __LINE__);
+    client.checkCORS(request, "OPTIONS", error405, __LINE__);
 
     running = false;
     thread.join();
@@ -919,7 +982,7 @@ BOOST_AUTO_TEST_CASE(filled_registry)
 
     const char* registry =
         R"({
-   "all/" : [ "GET", "POST", "PUT", "PATCH", "DELETE" ],
+   "all/" : [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ],
    "bla/bar" : [ "PUT" ],
    "test/foo" : [ "GET", "PUT" ]
 }

@@ -2,6 +2,7 @@
 /* Copyright (c) 2016-2017, Human Brain Project
  *                          Stefan.Eilemann@epfl.ch
  *                          Daniel.Nachbaur@epfl.ch
+ *                          Raphael.Dumusc@epfl.ch
  */
 
 #include "requestHandler.h"
@@ -42,6 +43,8 @@ Method _getMethodType(const std::string& methodName)
         return Method::PATCH;
     if (methodName == "DELETE")
         return Method::DELETE;
+    if (methodName == "OPTIONS")
+        return Method::OPTIONS;
     throw std::invalid_argument("Method not supported");
 }
 
@@ -59,6 +62,21 @@ std::string _headerEnumToString(const Header header)
         return "Location";
     case Header::RETRY_AFTER:
         return "Retry-After";
+    default:
+        throw std::logic_error("no such header");
+    }
+}
+
+std::string _headerEnumToString(const CorsResponseHeader header)
+{
+    switch (header)
+    {
+    case CorsResponseHeader::ACCESS_CONTROL_ALLOW_HEADERS:
+        return "Access-Control-Allow-Headers";
+    case CorsResponseHeader::ACCESS_CONTROL_ALLOW_METHODS:
+        return "Access-Control-Allow-Methods";
+    case CorsResponseHeader::ACCESS_CONTROL_ALLOW_ORIGIN:
+        return "Access-Control-Allow-Origin";
     default:
         throw std::logic_error("no such header");
     }
@@ -94,10 +112,7 @@ struct ConnectionHandler : std::enable_shared_from_this<ConnectionHandler>
         }
         catch (const std::invalid_argument&)
         {
-            std::vector<HTTPServer::response_header> headers;
-            _addCorsHeaders(headers);
             connection->set_status(HTTPServer::connection::not_supported);
-            connection->set_headers(headers);
         }
     }
 
@@ -139,6 +154,7 @@ private:
         message.request.path = uri.getPath();
         message.request.query = uri.getQuery();
         message.request.body.swap(_body);
+        _parseCorsRequestHeaders(message);
 
         void* messagePtr = &message;
         zmq_send(_socket, &messagePtr, sizeof(void*), 0);
@@ -158,52 +174,41 @@ private:
         }
 
         std::vector<HTTPServer::response_header> headers;
-        _addCorsHeaders(headers);
+        headers.push_back(
+            {"Content-Length", std::to_string(response.body.length())});
 
-        HTTPServer::response_header contentLength;
-        contentLength.name = "Content-Length";
-        contentLength.value = std::to_string(response.body.length());
-        headers.push_back(contentLength);
+        for (const auto& it : message.corsResponseHeaders)
+            headers.push_back({_headerEnumToString(it.first), it.second});
 
-        for (auto it = response.headers.begin(); it != response.headers.end();
-             ++it)
-        {
-            HTTPServer::response_header header;
-            header.name = _headerEnumToString(it->first);
-            header.value = it->second;
-            headers.push_back(header);
-        }
+        for (const auto& it : response.headers)
+            headers.push_back({_headerEnumToString(it.first), it.second});
+
         const auto status = HTTPServer::connection::status_t(response.code);
         connection->set_status(status);
         connection->set_headers(headers);
         connection->write(response.body);
     }
 
-    void _addCorsHeaders(std::vector<HTTPServer::response_header>& headers)
+    void _parseCorsRequestHeaders(Message& message)
     {
-        // In a typical situation, user agents can discover via a preflight
-        // request whether a cross-origin resource is prepared to accept
-        // requests. The current implementation of this class does not support
-        // this mechanism and has to accept cross-origin resources. In order to
-        // achieve that, access control headers are added to all HTTP responses,
-        // meaning that all sources are accepted for all requests. More
-        // information can be found here: https://www.w3.org/TR/cors
-
-        HTTPServer::response_header allowHeaders;
-        allowHeaders.name = "Access-Control-Allow-Headers";
-        allowHeaders.value = "Content-Type";
-
-        HTTPServer::response_header allowMethods;
-        allowMethods.name = "Access-Control-Allow-Methods";
-        allowMethods.value = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
-
-        HTTPServer::response_header allowOrigin;
-        allowOrigin.name = "Access-Control-Allow-Origin";
-        allowOrigin.value = "*";
-
-        headers.push_back(allowHeaders);
-        headers.push_back(allowMethods);
-        headers.push_back(allowOrigin);
+        for (const auto& header : _request.headers)
+        {
+            if (header.name == "Origin")
+                message.origin = header.value;
+            else if (header.name == "Access-Control-Request-Headers")
+                message.accessControlRequestHeaders = header.value;
+            else if (header.name == "Access-Control-Request-Method")
+            {
+                try
+                {
+                    message.accessControlRequestMethod =
+                        _getMethodType(header.value);
+                }
+                catch (const std::invalid_argument&)
+                {
+                }
+            }
+        }
     }
 
     const HTTPServer::request& _request;
