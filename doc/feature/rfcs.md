@@ -7,3 +7,5 @@ RFCs {#rfcs}
 * @subpage Sessions
 * @subpage landingpage
 * @subpage restapi
+* @subpage restapi
+* @subpage reqrep

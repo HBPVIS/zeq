@@ -58,7 +58,6 @@ public:
     }
     const std::string& getMessage() const { return _message; }
     bool operator==(const Echo& rhs) const { return _message == rhs._message; }
-
 private:
     bool _fromBinary(const void* data, const size_t) final
     {
@@ -88,7 +87,6 @@ public:
     }
 
     std::string getTypeName() const final { return TYPENAME(); }
-
 private:
     bool _fromBinary(const void*, const size_t) final { return true; }
     Data _toBinary() const final { return Data(); }
