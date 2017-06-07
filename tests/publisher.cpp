@@ -7,7 +7,7 @@
 
 #define BOOST_TEST_MODULE zeroeq_publisher
 
-#include "broker.h"
+#include "common.h"
 #include <zeroeq/detail/broker.h>
 #include <zeroeq/detail/constants.h>
 #include <zeroeq/detail/sender.h>

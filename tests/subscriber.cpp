@@ -6,7 +6,7 @@
 
 #define BOOST_TEST_MODULE zeroeq_subscriber
 
-#include "broker.h"
+#include "common.h"
 
 #include <servus/servus.h>
 

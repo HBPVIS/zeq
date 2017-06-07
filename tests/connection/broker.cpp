@@ -1,12 +1,12 @@
 
-/* Copyright (c) 2014-2016, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Stefan.Eilemann@epfl.ch
  *                          Juan Hernando <jhernando@fi.upm.es>
  */
 
 #define BOOST_TEST_MODULE zeroeq_connection_broker
 
-#include "../broker.h"
+#include "../common.h"
 #include <zeroeq/connection/broker.h>
 
 #include <servus/servus.h>

@@ -7,7 +7,7 @@
 
 #define BOOST_TEST_MODULE zeroeq_perf
 
-#include "broker.h"
+#include "common.h"
 #include <servus/servus.h>
 #include <servus/uri.h>
 

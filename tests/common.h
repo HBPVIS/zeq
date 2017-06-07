@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2016, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
  *                          Stefan.Eilemann@epfl.ch
  *                          Juan Hernando <jhernando@fi.upm.es>
@@ -33,10 +33,9 @@ std::string buildUniqueSession()
 
 zeroeq::URI buildURI(const std::string& hostname, const zeroeq::Publisher& to)
 {
-    assert(to.getURI().getPort());
-    zeroeq::URI uri;
+    zeroeq::URI uri = to.getURI();
     uri.setHost(hostname);
-    uri.setPort(to.getURI().getPort());
+    assert(uri.getPort());
     return uri;
 }
 
@@ -59,6 +58,7 @@ public:
     }
     const std::string& getMessage() const { return _message; }
     bool operator==(const Echo& rhs) const { return _message == rhs._message; }
+
 private:
     bool _fromBinary(const void* data, const size_t) final
     {
@@ -88,6 +88,7 @@ public:
     }
 
     std::string getTypeName() const final { return TYPENAME(); }
+
 private:
     bool _fromBinary(const void*, const size_t) final { return true; }
     Data _toBinary() const final { return Data(); }

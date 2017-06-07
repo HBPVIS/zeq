@@ -5,7 +5,7 @@
 
 #define BOOST_TEST_MODULE zeroeq_receiver
 
-#include "broker.h"
+#include "common.h"
 
 #include <chrono>
 
