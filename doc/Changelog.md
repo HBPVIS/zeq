@@ -1,5 +1,10 @@
 # Changelog {#Changelog}
 
+# git master
+
+* [213](https://github.com/HBPVIS/ZeroEQ/pull/213):
+  Remove ambiguous Subscriber(uri, session) ctors
+
 # Release 0.8 (24-05-2017)
 
 * [210](https://github.com/HBPVIS/ZeroEQ/pull/210):

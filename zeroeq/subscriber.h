@@ -70,25 +70,6 @@ public:
     ZEROEQ_API explicit Subscriber(const URI& uri);
 
     /**
-     * Create a subscriber which subscribes to publisher(s) on the given URI.
-     *
-     * The discovery and filtering by session is only used if the URI is not
-     * fully qualified.
-     *
-     * Postconditions:
-     * - discovers publishers on _zeroeq_pub._tcp ZeroConf service if URI is not
-     *   fully qualified
-     * - filters session \<username\> or ZEROEQ_SESSION from environment if
-     *   zeroeq::DEFAULT_SESSION
-     *
-     * @param uri publisher URI in the format [scheme://][*|host|IP|IF][:port]
-     * @param session session name used for filtering of discovered publishers
-     * @throw std::runtime_error if ZeroConf is not available or if session name
-     *                           is invalid
-     */
-    ZEROEQ_API Subscriber(const URI& uri, const std::string& session);
-
-    /**
      * Create a default shared subscriber.
      *
      * @sa Subscriber()
@@ -117,18 +98,6 @@ public:
      * @param shared another receiver to share data reception with
      */
     ZEROEQ_API Subscriber(const URI& uri, Receiver& shared);
-
-    /**
-     * Create a subscriber which subscribes to publisher(s) on the given URI.
-     *
-     * @sa Subscriber( const URI&, const std::string& )
-     *
-     * @param uri publisher URI in the format [scheme://][*|host|IP|IF][:port]
-     * @param session session name used for filtering of discovered publishers
-     * @param shared another receiver to share data reception with.
-     */
-    ZEROEQ_API Subscriber(const URI& uri, const std::string& session,
-                          Receiver& shared);
 
     /** Destroy this subscriber and withdraw any subscriptions. */
     ZEROEQ_API ~Subscriber();

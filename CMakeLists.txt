@@ -2,8 +2,8 @@
 #                             Stefan.Eilemann@epfl.ch
 
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
-project(ZeroEQ VERSION 0.8.0)
-set(ZeroEQ_VERSION_ABI 8)
+project(ZeroEQ VERSION 0.9.0)
+set(ZeroEQ_VERSION_ABI 9)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/common)
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/CMake/common/Common.cmake)

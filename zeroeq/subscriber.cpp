@@ -60,36 +60,6 @@ public:
         }
     }
 
-    Impl(const URI& uri, const std::string& session, void* context)
-        : _browser(PUBLISHER_SERVICE)
-        , _selfInstance(detail::Sender::getUUID())
-        , _session(session == DEFAULT_SESSION ? getDefaultSession() : session)
-    {
-        if (_session == zeroeq::NULL_SESSION || session.empty())
-            ZEROEQTHROW(std::runtime_error(
-                std::string("Invalid session name for subscriber")));
-
-        if (uri.getHost().empty() || uri.getPort() == 0)
-        {
-            if (!servus::Servus::isAvailable())
-                ZEROEQTHROW(std::runtime_error(
-                    std::string("Empty servus implementation")));
-
-            _browser.beginBrowsing(servus::Servus::IF_ALL);
-            update(context);
-        }
-        else
-        {
-            const std::string& zmqURI = buildZmqURI(uri);
-            if (!addConnection(context, zmqURI, uint128_t()))
-            {
-                ZEROEQTHROW(std::runtime_error("Cannot connect subscriber to " +
-                                               zmqURI + ": " +
-                                               zmq_strerror(zmq_errno())));
-            }
-        }
-    }
-
     ~Impl()
     {
         for (const auto& socket : _subscribers)
@@ -311,12 +281,6 @@ Subscriber::Subscriber(const URI& uri)
 {
 }
 
-Subscriber::Subscriber(const URI& uri, const std::string& session)
-    : Receiver()
-    , _impl(new Impl(uri, session, getZMQContext()))
-{
-}
-
 Subscriber::Subscriber(Receiver& shared)
     : Receiver(shared)
     , _impl(new Impl(DEFAULT_SESSION, getZMQContext()))
@@ -332,13 +296,6 @@ Subscriber::Subscriber(const std::string& session, Receiver& shared)
 Subscriber::Subscriber(const URI& uri, Receiver& shared)
     : Receiver(shared)
     , _impl(new Impl(uri, getZMQContext()))
-{
-}
-
-Subscriber::Subscriber(const URI& uri, const std::string& session,
-                       Receiver& shared)
-    : Receiver(shared)
-    , _impl(new Impl(uri, session, getZMQContext()))
 {
 }
 
