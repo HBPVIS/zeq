@@ -123,6 +123,12 @@ bool _isCorsRequest(const zeroeq::http::Message& message)
            message.accessControlRequestMethod != zeroeq::http::Method::ALL &&
            !message.origin.empty();
 }
+
+bool _isLocalhost(const std::string& source)
+{
+    return source.substr(0, source.find(":")) == "127.0.0.1";
+}
+
 } // anonymous namespace
 
 namespace zeroeq
@@ -312,6 +318,8 @@ public:
         return true;
     }
 
+    void block(const http::Method method) { _blockedMethods.insert(method); }
+    void unblock(const http::Method method) { _blockedMethods.erase(method); }
     void addSockets(std::vector<detail::Socket>& entries)
     {
         detail::Socket entry;
@@ -343,6 +351,7 @@ private:
 
     SchemaMap _schemas;
     std::array<FuncMap, size_t(Method::ALL)> _methods;
+    std::set<http::Method> _blockedMethods;
 
     RequestHandler _requestHandler;
     HTTPServer::options _httpOptions;
@@ -406,6 +415,7 @@ private:
     void _processRequest(Message& message)
     {
         const auto method = message.request.method;
+        const auto source = message.request.source;
         // remove leading '/'
         const auto path = message.request.path.substr(1);
 
@@ -435,6 +445,11 @@ private:
                     return;
                 }
             }
+        }
+        if (_blockedMethods.count(method) && !_isLocalhost(source))
+        {
+            message.response = make_ready_response(Code::FORBIDDEN);
+            return;
         }
 
         const auto beginsWithPath = [&path](const FuncMap::value_type& pair) {
@@ -589,6 +604,16 @@ SocketDescriptor Server::getSocketDescriptor() const
     }
     return fd;
 #endif
+}
+
+void Server::block(const http::Method method)
+{
+    _impl->block(method);
+}
+
+void Server::unblock(const http::Method method)
+{
+    _impl->unblock(method);
 }
 
 bool Server::handle(const std::string& endpoint, servus::Serializable& object)

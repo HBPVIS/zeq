@@ -150,6 +150,7 @@ private:
     {
         Message message;
         message.request.method = method;
+        message.request.source = _request.source;
         const auto uri = URI(_request.destination);
         message.request.path = uri.getPath();
         message.request.query = uri.getQuery();

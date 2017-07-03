@@ -128,6 +128,21 @@ public:
     }
 
     /**
+     * Block requests for specified method (other than from localhost).
+     * Server will return code 403 (FORBIDDEN).
+     *
+     * @param method the method which is to be blocked
+     */
+    void block(http::Method method);
+
+    /**
+     * Unblock requests for specified method.
+     *
+     * @param method the method which is to be unblocked
+     */
+    void unblock(http::Method method);
+
+    /**
      * @overload
      * @param object the object to update and serve on receive()
      * @param endpoint use this as the URL endpoint instead of the default

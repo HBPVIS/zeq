@@ -7,6 +7,8 @@
 
 # Release 0.8 (24-05-2017)
 
+* [214](https://github.com/HBPVIS/ZeroEQ/pull/214):
+  HTTP Server can now block a specific HTTP method
 * [210](https://github.com/HBPVIS/ZeroEQ/pull/210):
   http::Server:
     * Fix handling of CORS preflight requests
