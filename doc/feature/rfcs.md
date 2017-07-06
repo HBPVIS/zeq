@@ -9,3 +9,4 @@ RFCs {#rfcs}
 * @subpage restapi
 * @subpage restapi
 * @subpage reqrep
+* @subpage monitor
