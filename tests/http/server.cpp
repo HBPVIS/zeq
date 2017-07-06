@@ -8,14 +8,13 @@
 
 #define BOOST_TEST_MODULE http_server
 
-#include <servus/serializable.h>
-#include <zeroeq/subscriber.h>
-#include <zeroeq/uri.h>
-
 #include <zeroeq/http/helpers.h>
 #include <zeroeq/http/request.h>
 #include <zeroeq/http/response.h>
 #include <zeroeq/http/server.h>
+#include <zeroeq/zeroeq.h>
+
+#include <servus/serializable.h>
 
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/protocol/http/server.hpp>

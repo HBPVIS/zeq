@@ -37,7 +37,9 @@
 namespace zeroeq
 {
 using servus::uint128_t;
+class Monitor;
 class Publisher;
+class Sender;
 class Subscriber;
 class URI;
 

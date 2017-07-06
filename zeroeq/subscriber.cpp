@@ -187,6 +187,15 @@ public:
             return false;
         }
 
+        // Tell a Monitor on a Publisher we're here
+        if (zmq_setsockopt(_subscribers[zmqURI], ZMQ_SUBSCRIBE, &MEERKAT,
+                           sizeof(uint128_t)) == -1)
+        {
+            ZEROEQTHROW(std::runtime_error(
+                std::string("Cannot update meerkat filter: ") +
+                zmq_strerror(zmq_errno())));
+        }
+
         // Add existing subscriptions to socket
         for (const auto& i : _eventFuncs)
         {

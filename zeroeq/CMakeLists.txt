@@ -7,8 +7,10 @@ set(ZEROEQ_PUBLIC_HEADERS
   connection/broker.h
   connection/service.h
   log.h
+  monitor.h
   publisher.h
   receiver.h
+  sender.h
   subscriber.h
   types.h
   uri.h)
@@ -26,6 +28,7 @@ set(ZEROEQ_SOURCES
   connection/service.cpp
   detail/port.cpp
   detail/sender.cpp
+  monitor.cpp
   publisher.cpp
   receiver.cpp
   subscriber.cpp

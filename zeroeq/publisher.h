@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2016, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
  *                          Stefan.Eilemann@epfl.ch
  */
@@ -8,6 +8,7 @@
 #define ZEROEQ_PUBLISHER_H
 
 #include <zeroeq/api.h>
+#include <zeroeq/sender.h> // base class
 #include <zeroeq/types.h>
 
 #include <memory>
@@ -22,7 +23,7 @@ namespace zeroeq
  *
  * Example: @include tests/publisher.cpp
  */
-class Publisher
+class Publisher : public Sender
 {
 public:
     /**
@@ -136,6 +137,8 @@ private:
 
     Publisher(const Publisher&) = delete;
     Publisher& operator=(const Publisher&) = delete;
+
+    ZEROEQ_API void* getSocket() final;
 };
 }
 

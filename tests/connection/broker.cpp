@@ -55,8 +55,13 @@ public:
         }
 
         // test receive of data for echo event
-        for (size_t i = 0; i < 100 && !received; ++i)
+        for (size_t i = 0; i < 10; ++i)
+        {
             subscriber.receive(100);
+            if (received)
+                return;
+        }
+        BOOST_CHECK(!"reachable");
     }
 
     void waitStarted() const
@@ -110,7 +115,7 @@ BOOST_AUTO_TEST_CASE(broker)
     subscriber.waitStarted();
 
     BOOST_CHECK(zeroeq::connection::Service::subscribe(_broker, publisher));
-    for (size_t i = 0; i < 100 && !subscriber.received; ++i)
+    for (size_t i = 0; i < 10 && !subscriber.received; ++i)
     {
         BOOST_CHECK(publisher.publish(test::Echo(test::echoMessage)));
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -170,7 +175,7 @@ BOOST_AUTO_TEST_CASE(named_broker)
     BOOST_CHECK(zeroeq::connection::Service::subscribe(
         "127.0.0.1", "zeroeq::connection::test_named_broker", publisher));
 
-    for (size_t i = 0; i < 100 && !subscriber1.received; ++i)
+    for (size_t i = 0; i < 10 && !subscriber1.received; ++i)
     {
         BOOST_CHECK(publisher.publish(test::Echo(test::echoMessage)));
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

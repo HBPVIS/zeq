@@ -1,10 +1,12 @@
 
-/* Copyright (c) 2015, Human Brain Project
- *                     Daniel.Nachbaur@epfl.ch
+/* Copyright (c) 2015-2017, Human Brain Project
+ *                          Daniel.Nachbaur@epfl.ch
  */
 
 #ifndef ZEROEQ_DETAIL_CONSTANTS_H
 #define ZEROEQ_DETAIL_CONSTANTS_H
+
+#include <servus/uint128_t.h>
 
 #include <string>
 
@@ -21,6 +23,8 @@ const std::string ENV_SESSION("ZEROEQ_SESSION");
 const std::string UNKNOWN_USER("Unknown user");
 
 const std::string DEFAULT_SCHEMA("tcp");
+
+const servus::uint128_t MEERKAT(servus::make_uint128("zeroeq::Meerkat"));
 }
 
 #endif

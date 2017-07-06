@@ -98,4 +98,21 @@ void onEchoEvent(const void* data, const size_t size)
     BOOST_CHECK_EQUAL(size, message.size());
     BOOST_CHECK_EQUAL(echoMessage, message);
 }
+
+class Monitor : public zeroeq::Monitor
+{
+public:
+    explicit Monitor(zeroeq::Sender& sender)
+        : zeroeq::Monitor(sender)
+    {
+    }
+
+    Monitor(zeroeq::Sender& sender, zeroeq::Receiver& shared)
+        : zeroeq::Monitor(sender, shared)
+    {
+    }
+
+    void notifyNewConnection() final { ++connections; }
+    size_t connections{0};
+};
 }

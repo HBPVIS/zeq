@@ -24,7 +24,7 @@ class Publisher::Impl : public detail::Sender
 {
 public:
     Impl(const URI& uri_, const std::string& session)
-        : detail::Sender(uri_, 0, ZMQ_PUB)
+        : detail::Sender(uri_, 0, ZMQ_XPUB)
         , _service(PUBLISHER_SERVICE)
         , _session(session == DEFAULT_SESSION ? getDefaultSession() : session)
     {
@@ -177,5 +177,10 @@ const std::string& Publisher::getSession() const
 const URI& Publisher::getURI() const
 {
     return _impl->uri;
+}
+
+void* Publisher::getSocket()
+{
+    return _impl->socket;
 }
 }

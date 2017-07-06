@@ -2,6 +2,8 @@
 
 # git master
 
+* [215](https://github.com/HBPVIS/ZeroEQ/pull/215):
+  Implement Monitor to receive notifications for new subscribers
 * [217](https://github.com/HBPVIS/ZeroEQ/pull/217):
   Fix HTTP server response to CORS requests ("Access-Control-Allow-Origin: *"
   was missing).
