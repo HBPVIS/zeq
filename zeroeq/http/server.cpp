@@ -123,6 +123,7 @@ bool _isCorsRequest(const zeroeq::http::Message& message)
            message.accessControlRequestMethod != zeroeq::http::Method::ALL &&
            !message.origin.empty();
 }
+
 } // anonymous namespace
 
 namespace zeroeq
@@ -312,6 +313,17 @@ public:
         return true;
     }
 
+    void block(const http::Method method) { _blockedMethods.insert(method); }
+    void unblock(const http::Method method) { _blockedMethods.erase(method); }
+    void addToWhitelist(const std::string& address)
+    {
+        _whitelist.insert(address);
+    }
+    void removeFromWhitelist(const std::string& address)
+    {
+        _whitelist.erase(address);
+    }
+
     void addSockets(std::vector<detail::Socket>& entries)
     {
         detail::Socket entry;
@@ -343,6 +355,8 @@ private:
 
     SchemaMap _schemas;
     std::array<FuncMap, size_t(Method::ALL)> _methods;
+    std::set<http::Method> _blockedMethods;
+    std::set<std::string> _whitelist;
 
     RequestHandler _requestHandler;
     HTTPServer::options _httpOptions;
@@ -403,9 +417,15 @@ private:
         return methods;
     }
 
+    bool _isWhitelisted(const std::string& source)
+    {
+        return _whitelist.count(source.substr(0, source.find(":")));
+    }
+
     void _processRequest(Message& message)
     {
         const auto method = message.request.method;
+        const auto source = message.request.source;
         // remove leading '/'
         const auto path = message.request.path.substr(1);
 
@@ -435,6 +455,11 @@ private:
                     return;
                 }
             }
+        }
+        if (_blockedMethods.count(method) && !_isWhitelisted(source))
+        {
+            message.response = make_ready_response(Code::FORBIDDEN);
+            return;
         }
 
         const auto beginsWithPath = [&path](const FuncMap::value_type& pair) {
@@ -678,6 +703,26 @@ std::string Server::getSchema(const servus::Serializable& object) const
 std::string Server::getSchema(const std::string& endpoint) const
 {
     return _impl->getSchema(endpoint);
+}
+
+void Server::block(const http::Method method)
+{
+    _impl->block(method);
+}
+
+void Server::unblock(const http::Method method)
+{
+    _impl->unblock(method);
+}
+
+void Server::addToWhitelist(const std::string& address)
+{
+    _impl->addToWhitelist(address);
+}
+
+void Server::removeFromWhitelist(const std::string& address)
+{
+    _impl->removeFromWhitelist(address);
 }
 
 void Server::addSockets(std::vector<detail::Socket>& entries)

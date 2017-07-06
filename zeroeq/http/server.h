@@ -268,6 +268,36 @@ public:
     ZEROEQHTTP_API std::string getSchema(const std::string& endpoint) const;
     //@}
 
+    /**
+     * Block requests for specified method (other than from localhost).
+     * Server will return code 403 (FORBIDDEN).
+     *
+     * @param method the method which is to be blocked
+     */
+    void block(http::Method method);
+
+    /**
+     * Unblock requests for specified method.
+     *
+     * @param method the method which is to be unblocked
+     */
+    void unblock(http::Method method);
+
+    /**
+     * Add address to the whitelist (bypass the check for blocked
+     * methods).
+     *
+     * @param address the ip address to be whitelisted
+     */
+    void addToWhitelist(const std::string& address);
+
+    /**
+     * Remove source address from the whitelist.
+     *
+     * @param address the ip address to be removed from the whitelist.
+     */
+    void removeFromWhitelist(const std::string& address);
+
 private:
     class Impl;
     std::unique_ptr<Impl> _impl;
