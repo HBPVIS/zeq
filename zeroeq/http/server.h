@@ -268,6 +268,17 @@ public:
     ZEROEQHTTP_API std::string getSchema(const std::string& endpoint) const;
     //@}
 
+protected:
+    /**
+     * Respond to a request.
+     *
+     * This function can be overridden in derived classes to implement special
+     * processing such as filtering for certain sources or http methods.
+     * @param request to process.
+     * @return future response to a request.
+     */
+    virtual std::future<Response> respondTo(Request& request) const;
+
 private:
     class Impl;
     std::unique_ptr<Impl> _impl;

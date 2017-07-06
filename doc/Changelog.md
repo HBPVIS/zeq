@@ -2,6 +2,9 @@
 
 # git master
 
+* [216](https://github.com/HBPVIS/ZeroEQ/pull/216):
+  http::Server can be subclassed to filter requests, which can be useful to
+  restrict access to selected hosts or methods.
 * [213](https://github.com/HBPVIS/ZeroEQ/pull/213):
   Remove ambiguous Subscriber(uri, session) ctors
 

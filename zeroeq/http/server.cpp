@@ -320,18 +320,125 @@ public:
         entries.push_back(entry);
     }
 
-    void process()
+    std::string getRegistry() const
     {
-        Message* message = nullptr;
-        ::zmq_recv(socket, &message, sizeof(message), 0);
-        if (!message)
-            ZEROEQTHROW(std::runtime_error(
-                "Could not receive HTTP request from HTTP server"));
+        Json::Value body(Json::objectValue);
+        for (const auto& i : _methods[int(Method::GET)])
+            body[i.first].append("GET");
+        for (const auto& i : _methods[int(Method::POST)])
+            body[i.first].append("POST");
+        for (const auto& i : _methods[int(Method::PUT)])
+            body[i.first].append("PUT");
+        for (const auto& i : _methods[int(Method::PATCH)])
+            body[i.first].append("PATCH");
+        for (const auto& i : _methods[int(Method::DELETE)])
+            body[i.first].append("DELETE");
+        for (const auto& i : _methods[int(Method::OPTIONS)])
+            body[i.first].append("OPTIONS");
+        return body.toStyledString();
+    }
 
-        _processRequest(*message);
+    std::string getAllowedMethods(const std::string& endpoint) const
+    {
+        std::string methods;
+        if (_methods[int(Method::GET)].count(endpoint))
+            methods.append(methods.empty() ? "GET" : ", GET");
+        if (_methods[int(Method::POST)].count(endpoint))
+            methods.append(methods.empty() ? "POST" : ", POST");
+        if (_methods[int(Method::PUT)].count(endpoint))
+            methods.append(methods.empty() ? "PUT" : ", PUT");
+        if (_methods[int(Method::PATCH)].count(endpoint))
+            methods.append(methods.empty() ? "PATCH" : ", PATCH");
+        if (_methods[int(Method::DELETE)].count(endpoint))
+            methods.append(methods.empty() ? "DELETE" : ", DELETE");
+        if (_methods[int(Method::OPTIONS)].count(endpoint))
+            methods.append(methods.empty() ? "OPTIONS" : ", OPTIONS");
+        return methods;
+    }
 
-        bool done = true;
-        ::zmq_send(socket, &done, sizeof(done), 0);
+    std::future<Response> respondTo(Request& request) const
+    {
+        const auto method = request.method;
+        const auto path = request.path.substr(1); // remove leading '/'
+
+        if (method == Method::GET)
+        {
+            if (path == REQUEST_REGISTRY)
+                return make_ready_response(Code::OK, getRegistry(), JSON_TYPE);
+
+            if (_endsWithSchema(path))
+            {
+                const auto endpoint = path.substr(0, path.find_last_of('/'));
+                const auto it = _schemas.find(endpoint);
+                if (it != _schemas.end())
+                    return make_ready_response(Code::OK, it->second, JSON_TYPE);
+            }
+        }
+
+        const auto beginsWithPath = [&path](const FuncMap::value_type& pair) {
+            const auto& endpoint = pair.first;
+            return path.find(endpoint) == 0;
+        };
+        const auto& funcMap = _methods[int(method)];
+        const auto it =
+            std::find_if(funcMap.begin(), funcMap.end(), beginsWithPath);
+        if (it != funcMap.end())
+        {
+            const auto& endpoint = it->first;
+            const auto& func = it->second;
+
+            const auto pathStripped = _removeEndpointFromPath(endpoint, path);
+            if (pathStripped.empty() || *endpoint.rbegin() == '/')
+            {
+                request.path = pathStripped;
+                return func(request);
+            }
+        }
+
+        // if "/" is registered as an endpoint it should be passed all
+        // unhandled requests.
+        if (funcMap.count("/"))
+        {
+            const auto& func = funcMap.at("/");
+            request.path = path;
+            return func(request);
+        }
+
+        // return informative error 405 "Method Not Allowed" if possible
+        const auto allowedMethods = getAllowedMethods(path);
+        if (!allowedMethods.empty())
+        {
+            using Headers = std::map<Header, std::string>;
+            Headers headers{{Header::ALLOW, allowedMethods}};
+            return make_ready_response(Code::NOT_SUPPORTED, std::string(),
+                                       std::move(headers));
+        }
+
+        return make_ready_response(Code::NOT_FOUND);
+    }
+
+    void processCorsRequest(Message& message) const
+    {
+        // In a typical situation, user agents discover via a preflight request
+        // whether a cross-origin resource is prepared to accept requests.
+        // The current implementation accepts all sources for all requests.
+        // More information can be found here: https://www.w3.org/TR/cors
+
+        // remove leading '/'
+        const auto path = message.request.path.substr(1);
+
+        if (!_methods[int(message.accessControlRequestMethod)].count(path))
+        {
+            message.response = make_ready_response(Code::NOT_SUPPORTED);
+            return;
+        }
+
+        message.corsResponseHeaders = {
+            {CorsResponseHeader::access_control_allow_headers, "Content-Type"},
+            {CorsResponseHeader::access_control_allow_methods,
+             getAllowedMethods(path)},
+            {CorsResponseHeader::access_control_allow_origin, "*"}};
+        message.response = make_ready_response(Code::OK);
     }
 
 private:
@@ -343,7 +450,6 @@ private:
 
     SchemaMap _schemas;
     std::array<FuncMap, size_t(Method::ALL)> _methods;
-
     RequestHandler _requestHandler;
     HTTPServer::options _httpOptions;
     HTTPServer _httpServer;
@@ -365,143 +471,6 @@ private:
         inprocURI << "ipc:///tmp/" << static_cast<const void*>(this);
 #endif
         return inprocURI.str();
-    }
-
-    std::string _getRegistry() const
-    {
-        Json::Value body(Json::objectValue);
-        for (const auto& i : _methods[int(Method::GET)])
-            body[i.first].append("GET");
-        for (const auto& i : _methods[int(Method::POST)])
-            body[i.first].append("POST");
-        for (const auto& i : _methods[int(Method::PUT)])
-            body[i.first].append("PUT");
-        for (const auto& i : _methods[int(Method::PATCH)])
-            body[i.first].append("PATCH");
-        for (const auto& i : _methods[int(Method::DELETE)])
-            body[i.first].append("DELETE");
-        for (const auto& i : _methods[int(Method::OPTIONS)])
-            body[i.first].append("OPTIONS");
-        return body.toStyledString();
-    }
-
-    std::string _getAllowedMethods(const std::string& endpoint) const
-    {
-        std::string methods;
-        if (_methods[int(Method::GET)].count(endpoint))
-            methods.append(methods.empty() ? "GET" : ", GET");
-        if (_methods[int(Method::POST)].count(endpoint))
-            methods.append(methods.empty() ? "POST" : ", POST");
-        if (_methods[int(Method::PUT)].count(endpoint))
-            methods.append(methods.empty() ? "PUT" : ", PUT");
-        if (_methods[int(Method::PATCH)].count(endpoint))
-            methods.append(methods.empty() ? "PATCH" : ", PATCH");
-        if (_methods[int(Method::DELETE)].count(endpoint))
-            methods.append(methods.empty() ? "DELETE" : ", DELETE");
-        if (_methods[int(Method::OPTIONS)].count(endpoint))
-            methods.append(methods.empty() ? "OPTIONS" : ", OPTIONS");
-        return methods;
-    }
-
-    void _processRequest(Message& message)
-    {
-        const auto method = message.request.method;
-        // remove leading '/'
-        const auto path = message.request.path.substr(1);
-
-        if (_isCorsRequest(message))
-        {
-            _processCorsRequest(message, path);
-            return;
-        }
-
-        if (method == Method::GET)
-        {
-            if (path == REQUEST_REGISTRY)
-            {
-                message.response =
-                    make_ready_response(Code::OK, _getRegistry(), JSON_TYPE);
-                return;
-            }
-
-            if (_endsWithSchema(path))
-            {
-                const auto endpoint = path.substr(0, path.find_last_of('/'));
-                const auto it = _schemas.find(endpoint);
-                if (it != _schemas.end())
-                {
-                    message.response =
-                        make_ready_response(Code::OK, it->second, JSON_TYPE);
-                    return;
-                }
-            }
-        }
-
-        const auto beginsWithPath = [&path](const FuncMap::value_type& pair) {
-            const auto& endpoint = pair.first;
-            return path.find(endpoint) == 0;
-        };
-        const auto& funcMap = _methods[int(method)];
-        const auto it =
-            std::find_if(funcMap.begin(), funcMap.end(), beginsWithPath);
-        if (it != funcMap.end())
-        {
-            const auto& endpoint = it->first;
-            const auto& func = it->second;
-
-            const auto pathStripped = _removeEndpointFromPath(endpoint, path);
-            if (pathStripped.empty() || *endpoint.rbegin() == '/')
-            {
-                message.request.path = pathStripped;
-                message.response = func(message.request);
-                return;
-            }
-        }
-
-        // if "/" is registered as an endpoint it should be passed all
-        // unhandled requests.
-        if (funcMap.count("/"))
-        {
-            const auto& func = funcMap.at("/");
-            message.request.path = path;
-            message.response = func(message.request);
-            return;
-        }
-
-        // return informative error 405 "Method Not Allowed" if possible
-        const auto allowedMethods = _getAllowedMethods(path);
-        if (!allowedMethods.empty())
-        {
-            using Headers = std::map<Header, std::string>;
-            Headers headers{{Header::ALLOW, allowedMethods}};
-            message.response =
-                make_ready_response(Code::NOT_SUPPORTED, std::string(),
-                                    std::move(headers));
-            return;
-        }
-
-        message.response = make_ready_response(Code::NOT_FOUND);
-    }
-
-    void _processCorsRequest(Message& message, const std::string& path) const
-    {
-        // In a typical situation, user agents discover via a preflight request
-        // whether a cross-origin resource is prepared to accept requests.
-        // The current implementation accepts all sources for all requests.
-        // More information can be found here: https://www.w3.org/TR/cors
-
-        if (!_methods[int(message.accessControlRequestMethod)].count(path))
-        {
-            message.response = make_ready_response(Code::NOT_SUPPORTED);
-            return;
-        }
-
-        message.corsResponseHeaders = {
-            {CorsResponseHeader::access_control_allow_headers, "Content-Type"},
-            {CorsResponseHeader::access_control_allow_methods,
-             _getAllowedMethods(path)},
-            {CorsResponseHeader::access_control_allow_origin, "*"}};
-        message.response = make_ready_response(Code::OK);
     }
 };
 
@@ -680,6 +649,11 @@ std::string Server::getSchema(const std::string& endpoint) const
     return _impl->getSchema(endpoint);
 }
 
+std::future<Response> Server::respondTo(Request& request) const
+{
+    return _impl->respondTo(request);
+}
+
 void Server::addSockets(std::vector<detail::Socket>& entries)
 {
     _impl->addSockets(entries);
@@ -687,7 +661,19 @@ void Server::addSockets(std::vector<detail::Socket>& entries)
 
 void Server::process(detail::Socket&, const uint32_t)
 {
-    _impl->process();
+    Message* message = nullptr;
+    ::zmq_recv(_impl->socket, &message, sizeof(message), 0);
+    if (!message)
+        ZEROEQTHROW(std::runtime_error(
+            "Could not receive HTTP request from HTTP server"));
+
+    if (_isCorsRequest(*message))
+        _impl->processCorsRequest(*message);
+    else
+        message->response = respondTo(message->request);
+
+    bool done = true;
+    ::zmq_send(_impl->socket, &done, sizeof(done), 0);
 }
 }
 }
