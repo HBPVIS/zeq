@@ -77,6 +77,7 @@ const auto echoFunc = [](const zeroeq::http::Request& request) {
 const Response response200{ServerReponse::ok, ""};
 const Response response204{ServerReponse::no_content, ""};
 const Response error400{ServerReponse::bad_request, ""};
+const Response error403{ServerReponse::forbidden, ""};
 const Response error404{ServerReponse::not_found, ""};
 const Response error405{ServerReponse::method_not_allowed, ""};
 
@@ -605,7 +606,15 @@ BOOST_AUTO_TEST_CASE(post_serializable)
 BOOST_AUTO_TEST_CASE(handle_all)
 {
     bool running = true;
-    zeroeq::http::Server server;
+    zeroeq::http::Server server{zeroeq::URI("tcp://127.0.0.1:8888")};
+
+    server.block(zeroeq::http::Method::DELETE);
+    server.block(zeroeq::http::Method::GET);
+    server.block(zeroeq::http::Method::OPTIONS);
+    server.block(zeroeq::http::Method::PATCH);
+    server.block(zeroeq::http::Method::POST);
+    server.block(zeroeq::http::Method::PUT);
+    server.addToWhitelist("127.0.0.1");
 
     // Register "echo" function for all methods
     for (int method = 0; method < int(zeroeq::http::Method::ALL); ++method)
@@ -642,6 +651,39 @@ BOOST_AUTO_TEST_CASE(handle_all)
     // Check extra function with no content
     client.check(zeroeq::http::Method::GET, "/nocontent", "", response204,
                  __LINE__);
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(block_all)
+{
+    bool running = true;
+    zeroeq::http::Server server;
+
+    server.block(zeroeq::http::Method::DELETE);
+    server.block(zeroeq::http::Method::GET);
+    server.block(zeroeq::http::Method::OPTIONS);
+    server.block(zeroeq::http::Method::PATCH);
+    server.block(zeroeq::http::Method::POST);
+    server.block(zeroeq::http::Method::PUT);
+
+    // Register "echo" function for all methods
+    for (int method = 0; method < int(zeroeq::http::Method::ALL); ++method)
+        server.handle(zeroeq::http::Method(method), "path", echoFunc);
+
+    std::thread thread([&]() {
+        while (running)
+            server.receive(100);
+    });
+    Client client(server.getURI());
+
+    for (int method = 0; method < int(zeroeq::http::Method::ALL); ++method)
+    {
+        using Method = zeroeq::http::Method;
+        const auto m = Method(method);
+        client.check(m, "/path", "", error403, __LINE__);
+    }
 
     running = false;
     thread.join();
