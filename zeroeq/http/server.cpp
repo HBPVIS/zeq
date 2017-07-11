@@ -119,9 +119,14 @@ std::string _getHost(const zeroeq::URI& uri)
 
 bool _isCorsRequest(const zeroeq::http::Message& message)
 {
-    return message.request.method == zeroeq::http::Method::OPTIONS &&
-           message.accessControlRequestMethod != zeroeq::http::Method::ALL &&
-           !message.origin.empty();
+    return !message.origin.empty();
+}
+
+bool _isCorsPreflightRequest(const zeroeq::http::Message& message)
+{
+    return _isCorsRequest(message) &&
+           message.request.method == zeroeq::http::Method::OPTIONS &&
+           message.accessControlRequestMethod != zeroeq::http::Method::ALL;
 }
 } // anonymous namespace
 
@@ -417,7 +422,7 @@ public:
         return make_ready_response(Code::NOT_FOUND);
     }
 
-    void processCorsRequest(Message& message) const
+    void processCorsPreflightRequest(Message& message) const
     {
         // In a typical situation, user agents discover via a preflight request
         // whether a cross-origin resource is prepared to accept requests.
@@ -667,10 +672,24 @@ void Server::process(detail::Socket&, const uint32_t)
         ZEROEQTHROW(std::runtime_error(
             "Could not receive HTTP request from HTTP server"));
 
-    if (_isCorsRequest(*message))
-        _impl->processCorsRequest(*message);
+    if (_isCorsPreflightRequest(*message))
+    {
+        _impl->processCorsPreflightRequest(*message);
+    }
     else
+    {
         message->response = respondTo(message->request);
+
+        // When a client makes a CORS request (by setting an 'Origin' header) it
+        // expects an 'Access-Control-Allow-Origin' response header. See:
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+        // https://www.html5rocks.com/en/tutorials/cors/
+        if (_isCorsRequest(*message))
+        {
+            message->corsResponseHeaders = {
+                {CorsResponseHeader::access_control_allow_origin, "*"}};
+        }
+    }
 
     bool done = true;
     ::zmq_send(_impl->socket, &done, sizeof(done), 0);

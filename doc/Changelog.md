@@ -2,6 +2,9 @@
 
 # git master
 
+* [217](https://github.com/HBPVIS/ZeroEQ/pull/217):
+  Fix HTTP server response to CORS requests ("Access-Control-Allow-Origin: *"
+  was missing).
 * [216](https://github.com/HBPVIS/ZeroEQ/pull/216):
   http::Server can be subclassed to filter requests, which can be useful to
   restrict access to selected hosts or methods.

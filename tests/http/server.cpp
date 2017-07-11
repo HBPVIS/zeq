@@ -119,9 +119,11 @@ public:
     ~Client() {}
     void check(zeroeq::http::Method method, const std::string& request,
                const std::string& data, const Response& expected,
-               const int line)
+               const int line,
+               std::map<std::string, std::string> requestHeaders =
+                   std::map<std::string, std::string>{})
     {
-        _checkImpl(method, request, data, expected, line);
+        _checkImpl(method, request, data, expected, line, requestHeaders);
     }
 
     void checkGET(const std::string& request, const Response& expected,
@@ -142,8 +144,9 @@ public:
         _checkImpl(zeroeq::http::Method::POST, request, data, expected, line);
     }
 
-    void checkCORS(const std::string& request, const std::string& method,
-                   const Response& expected, const int line)
+    void checkCORSPreflight(const std::string& request,
+                            const std::string& method, const Response& expected,
+                            const int line)
     {
         std::map<std::string, std::string> corsRequestHeaders{
             {"Access-Control-Request-Method", method},
@@ -269,6 +272,17 @@ private:
         const auto& responseHeaders = headers(response);
         const size_t responseHeaderSize =
             std::distance(responseHeaders.begin(), responseHeaders.end());
+
+        // Print headers before error to help debugging
+        if (responseHeaderSize != expectedHeaders.size())
+        {
+            std::cout << "--- Response headers ---" << std::endl;
+            for (const auto& header : responseHeaders)
+                std::cout << header.first << ": " << header.second << std::endl;
+            std::cout << "--- Expected headers ---" << std::endl;
+            for (const auto& header : expectedHeaders)
+                std::cout << header.first << ": " << header.second << std::endl;
+        }
         BOOST_REQUIRE_MESSAGE(responseHeaderSize == expectedHeaders.size(),
                               "At l." + std::to_string(line) + ": " +
                                   std::to_string(responseHeaderSize) + " != " +
@@ -850,7 +864,7 @@ BOOST_AUTO_TEST_CASE(handle_headers)
     thread.join();
 }
 
-BOOST_AUTO_TEST_CASE(cors_preflight_options)
+BOOST_AUTO_TEST_CASE(cors_preflight_request)
 {
     bool running = true;
     zeroeq::http::Server server;
@@ -869,13 +883,60 @@ BOOST_AUTO_TEST_CASE(cors_preflight_options)
                       {{"Access-Control-Allow-Headers", "Content-Type"},
                        {"Access-Control-Allow-Methods", "GET, PUT"},
                        {"Access-Control-Allow-Origin", "*"}});
-    client.checkCORS(request, "GET", response, __LINE__);
-    client.checkCORS(request, "PUT", response, __LINE__);
+    client.checkCORSPreflight(request, "GET", response, __LINE__);
+    client.checkCORSPreflight(request, "PUT", response, __LINE__);
 
-    client.checkCORS(request, "POST", error405, __LINE__);
-    client.checkCORS(request, "PATCH", error405, __LINE__);
-    client.checkCORS(request, "DELETE", error405, __LINE__);
-    client.checkCORS(request, "OPTIONS", error405, __LINE__);
+    client.checkCORSPreflight(request, "POST", error405, __LINE__);
+    client.checkCORSPreflight(request, "PATCH", error405, __LINE__);
+    client.checkCORSPreflight(request, "DELETE", error405, __LINE__);
+    client.checkCORSPreflight(request, "OPTIONS", error405, __LINE__);
+
+    running = false;
+    thread.join();
+}
+
+BOOST_AUTO_TEST_CASE(cors_request)
+{
+    bool running = true;
+    zeroeq::http::Server server;
+    Foo foo;
+    server.handle(foo);
+
+    std::thread thread([&]() {
+        while (running)
+            server.receive(100);
+    });
+
+    Client client(server.getURI());
+    const auto request = std::string("/test/foo");
+
+    const std::map<std::string, std::string> corsReqHeaders{
+        {"Origin", "http://localhost:1234"}};
+
+    using Method = zeroeq::http::Method;
+
+    auto getResp = _buildResponse(jsonGet);
+    getResp.additionalHeaders.insert({"Access-Control-Allow-Origin", "*"});
+
+    auto putResp = response200;
+    putResp.additionalHeaders.insert({"Access-Control-Allow-Origin", "*"});
+
+    client.check(Method::GET, request, "", getResp, __LINE__, corsReqHeaders);
+    client.check(Method::PUT, request, jsonPut, putResp, __LINE__,
+                 corsReqHeaders);
+
+    const Response cors405GetPut(ServerReponse::method_not_allowed,
+                                 std::string(),
+                                 {{"Access-Control-Allow-Origin", "*"},
+                                  {"Allow", "GET, PUT"}});
+    client.check(Method::POST, request, "", cors405GetPut, __LINE__,
+                 corsReqHeaders);
+    client.check(Method::PATCH, request, "", cors405GetPut, __LINE__,
+                 corsReqHeaders);
+    client.check(Method::DELETE, request, "", cors405GetPut, __LINE__,
+                 corsReqHeaders);
+    client.check(Method::OPTIONS, request, "", cors405GetPut, __LINE__,
+                 corsReqHeaders);
 
     running = false;
     thread.join();
