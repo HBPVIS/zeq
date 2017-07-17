@@ -2,6 +2,8 @@
 
 # git master
 
+* [218](https://github.com/HBPVIS/ZeroEQ/pull/218):
+  Fix infinite loop in slow receivers
 * [215](https://github.com/HBPVIS/ZeroEQ/pull/215):
   Implement Monitor to receive notifications for new subscribers
 * [217](https://github.com/HBPVIS/ZeroEQ/pull/217):

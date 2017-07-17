@@ -19,6 +19,11 @@ namespace zeroeq
 {
 namespace detail
 {
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+using std::chrono::nanoseconds;
+
 class Receiver
 {
 public:
@@ -44,15 +49,15 @@ public:
         // for new connections from zeroconf (#20)
         const uint32_t block = std::min(1000u, timeout / 10);
 
-        const auto startTime = std::chrono::high_resolution_clock::now();
+        const auto startTime = high_resolution_clock::now();
         while (true)
         {
             for (::zeroeq::Receiver* receiver : _shared)
                 receiver->update();
 
-            const auto endTime = std::chrono::high_resolution_clock::now();
+            const auto endTime = high_resolution_clock::now();
             const uint32_t elapsed =
-                std::chrono::nanoseconds(endTime - startTime).count() / 1000000;
+                nanoseconds(endTime - startTime).count() / 1000000;
             uint32_t wait = 0;
             if (elapsed < timeout)
                 wait = std::min(timeout - uint32_t(elapsed), block);
@@ -94,7 +99,9 @@ private:
         // from the socket descriptors (c.f. HTTP server).
         // For reference:
         // https://funcptr.net/2012/09/10/zeromq---edge-triggered-notification
+        const auto startTime = high_resolution_clock::now();
         bool haveData = false;
+        bool hadData = false;
         do
         {
             std::vector<Socket> sockets;
@@ -106,13 +113,18 @@ private:
                 intervals.push_back(sockets.size() - before);
             }
 
-            switch (zmq_poll(sockets.data(), int(sockets.size()), timeout))
+            const uint32_t remaining =
+                duration_cast<milliseconds>(high_resolution_clock::now() -
+                                            startTime)
+                    .count();
+
+            switch (zmq_poll(sockets.data(), int(sockets.size()), remaining))
             {
             case -1: // error
                 ZEROEQTHROW(std::runtime_error(std::string("Poll error: ") +
                                                zmq_strerror(zmq_errno())));
             case 0: // timeout; no events signaled during poll
-                return haveData;
+                return hadData;
 
             default:
             {
@@ -142,14 +154,16 @@ private:
                     {
                         (*i)->process(socket, timeout);
                         haveData = true;
+                        hadData = true;
                     }
                 }
             }
             }
-        } while (haveData);
-
-        // if we didn't return earlier, we had at least one socket with data
-        return true;
+        } while (haveData &&
+                 duration_cast<milliseconds>(high_resolution_clock::now() -
+                                             startTime)
+                         .count() < timeout);
+        return hadData;
     }
 };
 }
