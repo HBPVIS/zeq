@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2016, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
  *                          Stefan.Eilemann@epfl.ch
  */
@@ -108,7 +108,7 @@ public:
         entries.insert(entries.end(), _entries.begin(), _entries.end());
     }
 
-    void process(detail::Socket& socket)
+    bool process(detail::Socket& socket)
     {
         zmq_msg_t msg;
         zmq_msg_init(&msg);
@@ -136,6 +136,7 @@ public:
         }
         else
             i->second(nullptr, 0);
+        return true;
     }
 
     void update(void* context)
@@ -347,9 +348,9 @@ void Subscriber::addSockets(std::vector<detail::Socket>& entries)
     _impl->addSockets(entries);
 }
 
-void Subscriber::process(detail::Socket& socket, const uint32_t)
+bool Subscriber::process(detail::Socket& socket)
 {
-    _impl->process(socket);
+    return _impl->process(socket);
 }
 
 void Subscriber::update()

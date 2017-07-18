@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2015, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Stefan.Eilemann@epfl.ch
  */
 
@@ -79,10 +79,11 @@ protected:
     /**
      * Process data on a signalled socket.
      *
-     * @param socket the socket provided from addSockets().
-     * @param timeout user provided timeout from receive().
+     * @param socket the socket provided from addSockets()
+     * @return true if an event was communicated to the application, false
+     *         otherwise
      */
-    virtual void process(detail::Socket& socket, uint32_t timeout) = 0;
+    virtual bool process(detail::Socket& socket) = 0;
 
     /**
      * Update the internal connection list.

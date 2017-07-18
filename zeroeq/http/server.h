@@ -285,7 +285,7 @@ private:
 
     // Receiver API
     void addSockets(std::vector<detail::Socket>& entries) final;
-    void process(detail::Socket& socket, uint32_t timeout) final;
+    bool process(detail::Socket& socket) final;
 };
 }
 }

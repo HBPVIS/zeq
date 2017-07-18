@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2016, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
  *                          Stefan.Eilemann@epfl.ch
  */
@@ -160,7 +160,7 @@ private:
 
     // Receiver API
     void addSockets(std::vector<detail::Socket>& entries) final;
-    void process(detail::Socket& socket, uint32_t timeout) final;
+    bool process(detail::Socket& socket) final;
     void update() final;
     void addConnection(const std::string& uri) final;
 };

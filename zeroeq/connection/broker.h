@@ -93,7 +93,7 @@ private:
 
     // Receiver API
     void addSockets(std::vector<zeroeq::detail::Socket>& entries) final;
-    void process(zeroeq::detail::Socket& socket, uint32_t timeout) final;
+    bool process(zeroeq::detail::Socket& socket) final;
 };
 }
 }

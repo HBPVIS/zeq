@@ -1,7 +1,7 @@
 
-/* Copyright (c) 2014, Human Brain Project
- *                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>
- *                     Stefan.Eilemann@epfl.ch
+/* Copyright (c) 2014-2017, Human Brain Project
+ *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
+ *                          Stefan.Eilemann@epfl.ch
  */
 
 #define NOMINMAX // otherwise std::min/max below don't work on VS
@@ -123,6 +123,7 @@ private:
             case -1: // error
                 ZEROEQTHROW(std::runtime_error(std::string("Poll error: ") +
                                                zmq_strerror(zmq_errno())));
+
             case 0: // timeout; no events signaled during poll
                 return hadData;
 
@@ -152,9 +153,11 @@ private:
 
                     if (socket.revents & ZMQ_POLLIN)
                     {
-                        (*i)->process(socket, timeout);
-                        haveData = true;
-                        hadData = true;
+                        if ((*i)->process(socket))
+                        {
+                            haveData = true;
+                            hadData = true;
+                        }
                     }
                 }
             }

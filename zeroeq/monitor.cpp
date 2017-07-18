@@ -27,7 +27,7 @@ public:
         entries.push_back(entry);
     }
 
-    virtual void process(void* socket, Monitor& monitor) = 0;
+    virtual bool process(void* socket, Monitor& monitor) = 0;
 
 protected:
     void* _socket;
@@ -60,13 +60,13 @@ public:
         }
     }
 
-    void process(void* socket, Monitor& monitor)
+    bool process(void* socket, Monitor& monitor)
     {
         // Message event is one byte 0=unsub or 1=sub, followed by topic
         zmq_msg_t msg;
         zmq_msg_init(&msg);
         if (zmq_msg_recv(&msg, socket, 0) == -1)
-            return;
+            return false;
 
         const uint8_t* data = (const uint8_t*)zmq_msg_data(&msg);
         switch (*data)
@@ -79,6 +79,7 @@ public:
                 *(const uint128_t*)(data + 1) == MEERKAT) // new subscriber
             {
                 monitor.notifyNewConnection();
+                return true;
             }
             break;
 
@@ -86,7 +87,7 @@ public:
             ZEROEQWARN << "Unhandled monitor event" << std::endl;
         }
         zmq_msg_close(&msg);
-        return;
+        return false;
     }
 };
 
@@ -126,7 +127,7 @@ public:
             ::zmq_close(_socket);
     }
 
-    void process(void* socket, Monitor& monitor)
+    bool process(void* socket, Monitor& monitor)
     {
         // Messages consist of 2 Frames, the first containing the event-id and
         // the associated value. The second frame holds the affected endpoint as
@@ -136,17 +137,17 @@ public:
 
         //  The layout of the first Frame is: 16 bit event id 32 bit event value
         if (zmq_msg_recv(&msg, socket, 0) == -1)
-            return;
+            return false;
 
         const uint16_t event = *(uint16_t*)zmq_msg_data(&msg);
         if (!zmq_msg_more(&msg))
-            return;
+            return false;
         zmq_msg_close(&msg);
 
         //  Second frame in message contains event address, skip
         zmq_msg_init(&msg);
         if (zmq_msg_recv(&msg, socket, 0) == -1)
-            return;
+            return false;
         zmq_msg_close(&msg);
 
         switch (event)
@@ -154,11 +155,12 @@ public:
         case ZMQ_EVENT_CONNECTED:
         case ZMQ_EVENT_ACCEPTED:
             monitor.notifyNewConnection();
-            break;
+            return true;
 
         default:
             ZEROEQWARN << "Unhandled monitor event " << event << std::endl;
         }
+        return false;
     }
 };
 
@@ -191,8 +193,8 @@ void Monitor::addSockets(std::vector<zeroeq::detail::Socket>& entries)
     _impl->addSockets(entries);
 }
 
-void Monitor::process(zeroeq::detail::Socket& socket, uint32_t)
+bool Monitor::process(zeroeq::detail::Socket& socket)
 {
-    _impl->process(socket.socket, *this);
+    return _impl->process(socket.socket, *this);
 }
 }

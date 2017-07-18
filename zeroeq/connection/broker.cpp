@@ -59,7 +59,7 @@ public:
         entries.push_back(entry);
     }
 
-    void process(zeroeq::detail::Socket& socket_)
+    bool process(zeroeq::detail::Socket& socket_)
     {
         zmq_msg_t msg;
         zmq_msg_init(&msg);
@@ -70,6 +70,7 @@ public:
         _receiver.addConnection(std::string("tcp://") + address);
         zmq_msg_send(&msg, socket_.socket, 0);
         zmq_msg_close(&msg);
+        return true;
     }
 
 private:
@@ -121,9 +122,9 @@ void Broker::addSockets(std::vector<zeroeq::detail::Socket>& entries)
     _impl->addSockets(entries);
 }
 
-void Broker::process(zeroeq::detail::Socket& socket, const uint32_t)
+bool Broker::process(zeroeq::detail::Socket& socket)
 {
-    _impl->process(socket);
+    return _impl->process(socket);
 }
 
 std::string Broker::getAddress() const

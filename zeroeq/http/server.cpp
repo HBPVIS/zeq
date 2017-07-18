@@ -664,7 +664,7 @@ void Server::addSockets(std::vector<detail::Socket>& entries)
     _impl->addSockets(entries);
 }
 
-void Server::process(detail::Socket&, const uint32_t)
+bool Server::process(detail::Socket&)
 {
     Message* message = nullptr;
     ::zmq_recv(_impl->socket, &message, sizeof(message), 0);
@@ -693,6 +693,7 @@ void Server::process(detail::Socket&, const uint32_t)
 
     bool done = true;
     ::zmq_send(_impl->socket, &done, sizeof(done), 0);
+    return true;
 }
 }
 }
