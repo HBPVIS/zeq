@@ -24,10 +24,10 @@ class Broker : public zeroeq::detail::Sender
 {
 public:
     Broker(const std::string& name, Receiver& receiver,
-           const connection::Broker::PortSelection mode, void* context)
+           const connection::Broker::PortSelection mode)
         : Sender(URI(std::string("tcp://*:") +
                      std::to_string(uint32_t(zeroeq::detail::getPort(name)))),
-                 context, ZMQ_REP)
+                 ZMQ_REP)
         , _receiver(receiver)
     {
         if (!_listen(mode))
@@ -38,8 +38,8 @@ public:
         initURI();
     }
 
-    Broker(Receiver& receiver, const std::string& address, void* context)
-        : Sender(URI(std::string("tcp://") + address), context, ZMQ_REP)
+    Broker(Receiver& receiver, const std::string& address)
+        : Sender(URI(std::string("tcp://") + address), ZMQ_REP)
         , _receiver(receiver)
     {
         _listen(connection::Broker::PORT_FIXED);
@@ -102,13 +102,13 @@ private:
 Broker::Broker(const std::string& name, Receiver& receiver,
                const PortSelection mode)
     : Receiver(receiver)
-    , _impl(new detail::Broker(name, receiver, mode, getZMQContext()))
+    , _impl(new detail::Broker(name, receiver, mode))
 {
 }
 
 Broker::Broker(const std::string& address, Receiver& receiver)
     : Receiver(receiver)
-    , _impl(new detail::Broker(receiver, address, getZMQContext()))
+    , _impl(new detail::Broker(receiver, address))
 {
 }
 

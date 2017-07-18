@@ -138,8 +138,8 @@ class Server::Impl : public detail::Sender
 {
 public:
     Impl(const URI& uri_, const std::string& session)
-        : detail::Sender(URI(_getInprocURI()), 0, ZMQ_PAIR)
-        , _requestHandler(_getInprocURI(), getContext())
+        : detail::Sender(URI(_getInprocURI()), ZMQ_PAIR)
+        , _requestHandler(_getInprocURI())
         , _httpOptions(_requestHandler)
         , _httpServer(_httpOptions.address(_getHost(uri_))
                           .port(std::to_string(int(uri_.getPort())))

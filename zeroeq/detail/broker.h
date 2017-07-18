@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2015, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
  *                          Stefan.Eilemann@epfl.ch
  */
@@ -41,7 +41,9 @@ inline std::string buildZmqURI(const std::string& schema, std::string host,
 
 inline std::string buildZmqURI(const zeroeq::URI& uri)
 {
-    return buildZmqURI(uri.getScheme(), uri.getHost(), uri.getPort());
+    if (uri.getScheme() == DEFAULT_SCHEMA)
+        return buildZmqURI(uri.getScheme(), uri.getHost(), uri.getPort());
+    return std::to_string(uri);
 }
 
 inline std::string getUserName()

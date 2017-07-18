@@ -64,7 +64,9 @@ BOOST_AUTO_TEST_CASE(publish_receive_event)
     BOOST_CHECK(subscriber.subscribe(
         zeroeq::make_uint128("Echo"),
         zeroeq::EventPayloadFunc([&](const void* data, const size_t size) {
-            BOOST_CHECK_EQUAL(reinterpret_cast<const char*>(data), echoString);
+            BOOST_CHECK_EQUAL(std::string(reinterpret_cast<const char*>(data),
+                                          size),
+                              echoString);
             BOOST_CHECK_EQUAL(size, echoString.length());
             received = true;
         })));
@@ -206,11 +208,10 @@ BOOST_AUTO_TEST_CASE(publish_receive_zeroconf_disabled)
 
 BOOST_AUTO_TEST_CASE(publish_receive_filters)
 {
-    // The publisher needs to be destroyed before the subscriber otherwise
-    // zmq_ctx_destroy() can hang forever. For more details see
-    // zmq_ctx_destroy() documentation.
-    zeroeq::Publisher* publisher = new zeroeq::Publisher(zeroeq::NULL_SESSION);
-    zeroeq::Subscriber subscriber(zeroeq::URI(publisher->getURI()));
+    zeroeq::Publisher publisher(
+        zeroeq::URI("inproc://zeroeq.test.publish_receive_filters"),
+        zeroeq::NULL_SESSION);
+    zeroeq::Subscriber subscriber(zeroeq::URI(publisher.getURI()));
 
     // Make sure we're connected
     BOOST_CHECK(
@@ -218,7 +219,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
                              zeroeq::EventPayloadFunc(&test::onEchoEvent)));
     for (size_t i = 0; i < 20; ++i)
     {
-        BOOST_CHECK(publisher->publish(test::Echo(test::echoMessage)));
+        BOOST_CHECK(publisher.publish(test::Echo(test::echoMessage)));
         if (subscriber.receive(100))
             break;
     }
@@ -228,7 +229,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
     auto startTime = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < 20000; ++i)
     {
-        BOOST_CHECK(publisher->publish(test::Echo()));
+        BOOST_CHECK(publisher.publish(test::Echo()));
         while (subscriber.receive(0)) /* NOP to drain */
             ;
     }
@@ -247,7 +248,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
     startTime = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < 20000; ++i)
     {
-        BOOST_CHECK(publisher->publish(test::Echo(message)));
+        BOOST_CHECK(publisher.publish(test::Echo(message)));
         while (subscriber.receive(0)) /* NOP to drain */
             ;
     }
@@ -259,7 +260,6 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
                         std::chrono::nanoseconds(noEchoTime).count()
                             << ", "
                             << std::chrono::nanoseconds(echoTime).count());
-    delete publisher;
 }
 
 BOOST_AUTO_TEST_CASE(publish_receive_late_zeroconf)

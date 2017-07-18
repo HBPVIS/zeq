@@ -9,6 +9,7 @@
 #include "detail/broker.h"
 #include "detail/byteswap.h"
 #include "detail/constants.h"
+#include "detail/context.h"
 #include "detail/sender.h"
 #include "detail/socket.h"
 #include "log.h"
@@ -26,8 +27,9 @@ namespace zeroeq
 class Subscriber::Impl
 {
 public:
-    Impl(const std::string& session, void* context)
-        : _browser(PUBLISHER_SERVICE)
+    Impl(const std::string& session)
+        : _context(detail::getContext())
+        , _browser(PUBLISHER_SERVICE)
         , _selfInstance(detail::Sender::getUUID())
         , _session(session == DEFAULT_SESSION ? getDefaultSession() : session)
     {
@@ -40,19 +42,23 @@ public:
                 std::runtime_error(std::string("Empty servus implementation")));
 
         _browser.beginBrowsing(servus::Servus::IF_ALL);
-        update(context);
+        update();
     }
 
-    Impl(const URI& uri, void* context)
-        : _browser(PUBLISHER_SERVICE)
+    Impl(const URI& uri)
+        : _context(detail::getContext())
+        , _browser(PUBLISHER_SERVICE)
         , _selfInstance(detail::Sender::getUUID())
     {
-        if (uri.getHost().empty() || uri.getPort() == 0)
+        if (uri.getScheme() == DEFAULT_SCHEMA &&
+            (uri.getHost().empty() || uri.getPort() == 0))
+        {
             ZEROEQTHROW(std::runtime_error(
                 std::string("Non-fully qualified URI used for subscriber")));
+        }
 
         const std::string& zmqURI = buildZmqURI(uri);
-        if (!addConnection(context, zmqURI, uint128_t()))
+        if (!addConnection(zmqURI, uint128_t()))
         {
             ZEROEQTHROW(std::runtime_error("Cannot connect subscriber to " +
                                            zmqURI + ": " +
@@ -139,7 +145,7 @@ public:
         return true;
     }
 
-    void update(void* context)
+    void update()
     {
         if (_browser.isBrowsing())
             _browser.browse(0);
@@ -161,7 +167,7 @@ public:
 
                 const uint128_t identifier(
                     _browser.get(instance, KEY_INSTANCE));
-                if (!addConnection(context, zmqURI, identifier))
+                if (!addConnection(zmqURI, identifier))
                 {
                     ZEROEQINFO << "Cannot connect subscriber to " << zmqURI
                                << ": " << zmq_strerror(zmq_errno())
@@ -171,13 +177,12 @@ public:
         }
     }
 
-    bool addConnection(void* context, const std::string& zmqURI,
-                       const uint128_t& instance)
+    bool addConnection(const std::string& zmqURI, const uint128_t& instance)
     {
         if (instance == _selfInstance)
             return true;
 
-        _subscribers[zmqURI] = zmq_socket(context, ZMQ_SUB);
+        _subscribers[zmqURI] = zmq_socket(_context.get(), ZMQ_SUB);
         const int hwm = 0;
         zmq_setsockopt(_subscribers[zmqURI], ZMQ_RCVHWM, &hwm, sizeof(hwm));
 
@@ -222,7 +227,9 @@ public:
     }
 
     const std::string& getSession() const { return _session; }
+
 private:
+    detail::ContextPtr _context;
     typedef std::map<std::string, void*> SocketMap;
     SocketMap _subscribers;
 
@@ -275,37 +282,37 @@ private:
 
 Subscriber::Subscriber()
     : Receiver()
-    , _impl(new Impl(DEFAULT_SESSION, getZMQContext()))
+    , _impl(new Impl(DEFAULT_SESSION))
 {
 }
 
 Subscriber::Subscriber(const std::string& session)
     : Receiver()
-    , _impl(new Impl(session, getZMQContext()))
+    , _impl(new Impl(session))
 {
 }
 
 Subscriber::Subscriber(const URI& uri)
     : Receiver()
-    , _impl(new Impl(uri, getZMQContext()))
+    , _impl(new Impl(uri))
 {
 }
 
 Subscriber::Subscriber(Receiver& shared)
     : Receiver(shared)
-    , _impl(new Impl(DEFAULT_SESSION, getZMQContext()))
+    , _impl(new Impl(DEFAULT_SESSION))
 {
 }
 
 Subscriber::Subscriber(const std::string& session, Receiver& shared)
     : Receiver(shared)
-    , _impl(new Impl(session, getZMQContext()))
+    , _impl(new Impl(session))
 {
 }
 
 Subscriber::Subscriber(const URI& uri, Receiver& shared)
     : Receiver(shared)
-    , _impl(new Impl(uri, getZMQContext()))
+    , _impl(new Impl(uri))
 {
 }
 
@@ -355,11 +362,11 @@ bool Subscriber::process(detail::Socket& socket)
 
 void Subscriber::update()
 {
-    _impl->update(getZMQContext());
+    _impl->update();
 }
 
 void Subscriber::addConnection(const std::string& uri)
 {
-    _impl->addConnection(getZMQContext(), uri, uint128_t());
+    _impl->addConnection(uri, uint128_t());
 }
 }

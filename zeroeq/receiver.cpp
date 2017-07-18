@@ -27,12 +27,6 @@ using std::chrono::nanoseconds;
 class Receiver
 {
 public:
-    Receiver()
-        : _context(zmq_ctx_new())
-    {
-    }
-
-    ~Receiver() { zmq_ctx_destroy(_context); }
     void add(::zeroeq::Receiver* receiver) { _shared.push_back(receiver); }
     void remove(::zeroeq::Receiver* receiver)
     {
@@ -70,9 +64,7 @@ public:
         }
     }
 
-    void* getZMQContext() { return _context; }
 private:
-    void* _context;
     typedef std::vector<::zeroeq::Receiver*> Receivers;
     typedef Receivers::iterator ReceiversIter;
 
@@ -199,9 +191,4 @@ void Receiver::addConnection(const std::string&)
     ZEROEQDONTCALL;
 }
 // LCOV_EXCL_STOP
-
-void* Receiver::getZMQContext()
-{
-    return _impl->getZMQContext();
-}
 }

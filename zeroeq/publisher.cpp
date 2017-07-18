@@ -24,7 +24,7 @@ class Publisher::Impl : public detail::Sender
 {
 public:
     Impl(const URI& uri_, const std::string& session)
-        : detail::Sender(uri_, 0, ZMQ_XPUB)
+        : detail::Sender(uri_, ZMQ_XPUB)
         , _service(PUBLISHER_SERVICE)
         , _session(session == DEFAULT_SESSION ? getDefaultSession() : session)
     {

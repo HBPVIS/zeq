@@ -11,6 +11,8 @@
 #include <zeroeq/http/request.h>  // member
 #include <zeroeq/http/response.h> // member
 
+#include <zeroeq/detail/context.h>
+
 #include <boost/network/protocol/http/server.hpp>
 #include <future>
 
@@ -55,9 +57,8 @@ public:
     /**
      * @param zmqURL URL to inproc socket for communication between cppnetlib
      *               thread and zeroeq::http::Server thread
-     * @param zmqContext the context to create the inproc socket in
      */
-    RequestHandler(const std::string& zmqURL, void* zmqContext);
+    RequestHandler(const std::string& zmqURL);
 
     ~RequestHandler();
 
@@ -66,6 +67,7 @@ public:
                     HTTPServer::connection_ptr connection);
 
 private:
+    detail::ContextPtr _context;
     void* _socket;
 };
 }

@@ -6,6 +6,7 @@
 #include "monitor.h"
 
 #include "detail/constants.h"
+#include "detail/context.h"
 #include "detail/socket.h"
 #include "log.h"
 #include "publisher.h"
@@ -94,7 +95,8 @@ public:
 class SocketImpl : public Monitor::Impl
 {
 public:
-    SocketImpl(Sender& sender, void* context)
+    SocketImpl(Sender& sender)
+        : _context(detail::getContext())
     {
         const auto inproc = std::string("inproc://zeroeq.monitor.") +
                             servus::make_UUID().getString();
@@ -107,7 +109,7 @@ public:
                                    zmq_strerror(zmq_errno())));
         }
 
-        _socket = ::zmq_socket(context, ZMQ_PAIR);
+        _socket = ::zmq_socket(_context.get(), ZMQ_PAIR);
         if (!_socket)
             ZEROEQTHROW(std::runtime_error(
                 std::string("Cannot create inproc socket: ") +
@@ -162,25 +164,28 @@ public:
         }
         return false;
     }
+
+private:
+    detail::ContextPtr _context;
 };
 
-Monitor::Impl* newImpl(Sender& sender, void* context)
+Monitor::Impl* newImpl(Sender& sender)
 {
     if (dynamic_cast<Publisher*>(&sender))
         return new XPubImpl(sender);
-    return new SocketImpl(sender, context);
+    return new SocketImpl(sender);
 }
 }
 
 Monitor::Monitor(Sender& sender)
     : Receiver()
-    , _impl(newImpl(sender, getZMQContext()))
+    , _impl(newImpl(sender))
 {
 }
 
 Monitor::Monitor(Sender& sender, Receiver& shared)
     : Receiver(shared)
-    , _impl(newImpl(sender, getZMQContext()))
+    , _impl(newImpl(sender))
 {
 }
 

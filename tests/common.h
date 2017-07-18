@@ -59,9 +59,9 @@ public:
     const std::string& getMessage() const { return _message; }
     bool operator==(const Echo& rhs) const { return _message == rhs._message; }
 private:
-    bool _fromBinary(const void* data, const size_t) final
+    bool _fromBinary(const void* data, const size_t size) final
     {
-        _message = std::string(static_cast<const char*>(data));
+        _message = std::string(static_cast<const char*>(data), size);
         return true;
     }
 

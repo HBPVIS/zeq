@@ -218,8 +218,9 @@ private:
 };
 } // anonymous namespace
 
-RequestHandler::RequestHandler(const std::string& zmqURL, void* zmqContext)
-    : _socket(zmq_socket(zmqContext, ZMQ_PAIR))
+RequestHandler::RequestHandler(const std::string& zmqURL)
+    : _context(detail::getContext())
+    , _socket(zmq_socket(_context.get(), ZMQ_PAIR))
 {
     if (zmq_connect(_socket, zmqURL.c_str()) == -1)
     {

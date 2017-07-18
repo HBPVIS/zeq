@@ -100,8 +100,6 @@ protected:
     ZEROEQ_API virtual void addConnection(const std::string& uri);
     friend class connection::detail::Broker;
 
-    void* getZMQContext(); //!< @internal returns the ZeroMQ context
-
 private:
     Receiver& operator=(const Receiver&) = delete;
 

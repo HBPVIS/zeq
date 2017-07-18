@@ -19,6 +19,7 @@ set(ZEROEQ_HEADERS
   detail/application.h
   detail/broker.h
   detail/constants.h
+  detail/context.h
   detail/port.h
   detail/sender.h
   detail/socket.h)
@@ -26,6 +27,7 @@ set(ZEROEQ_HEADERS
 set(ZEROEQ_SOURCES
   connection/broker.cpp
   connection/service.cpp
+  detail/context.cpp
   detail/port.cpp
   detail/sender.cpp
   monitor.cpp

@@ -6,6 +6,8 @@
 #ifndef ZEROEQ_DETAIL_SENDER_H
 #define ZEROEQ_DETAIL_SENDER_H
 
+#include <zeroeq/detail/constants.h>
+#include <zeroeq/detail/context.h>
 #include <zeroeq/log.h> // ZEROEQINFO
 #include <zeroeq/types.h>
 #include <zeroeq/uri.h>
@@ -27,18 +29,13 @@ namespace detail
 {
 class Sender
 {
-    void* _context; // must be private before socket
+    detail::ContextPtr _context; // must be private before socket
 
 public:
-    Sender(void* context, const int type)
-        : Sender(URI(), context, type)
-    {
-    }
-
-    Sender(const URI& uri_, void* context, const int type)
-        : _context(nullptr)
+    Sender(const URI& uri_, const int type)
+        : _context(detail::getContext())
         , uri(uri_)
-        , socket(zmq_socket(_createContext(context), type))
+        , socket(zmq_socket(_context.get(), type))
     {
         const int hwm = 0;
         zmq_setsockopt(socket, ZMQ_SNDHWM, &hwm, sizeof(hwm));
@@ -48,11 +45,8 @@ public:
     {
         if (socket)
             zmq_close(socket);
-        if (_context)
-            zmq_ctx_destroy(_context);
     }
 
-    void* getContext() { return _context; }
     std::string getAddress() const
     {
         return uri.getHost() + ":" + std::to_string(uint32_t(uri.getPort()));
@@ -60,6 +54,9 @@ public:
 
     void initURI()
     {
+        if (uri.getScheme() != DEFAULT_SCHEMA)
+            return;
+
         std::string host = uri.getHost();
         if (host == "*")
             host.clear();
@@ -112,15 +109,6 @@ private:
             hostname[NI_MAXHOST] = '\0';
             host = hostname;
         }
-    }
-
-    void* _createContext(void* context)
-    {
-        if (context)
-            return context;
-
-        _context = zmq_ctx_new();
-        return _context;
     }
 };
 }

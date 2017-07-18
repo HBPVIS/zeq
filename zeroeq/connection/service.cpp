@@ -1,9 +1,10 @@
 
-/* Copyright (c) 2014-2015, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Stefan.Eilemann@epfl.ch
  */
 
 #include "service.h"
+#include <zeroeq/detail/context.h>
 #include <zeroeq/detail/port.h>
 #include <zeroeq/log.h>
 #include <zeroeq/publisher.h>
@@ -18,15 +19,21 @@ namespace connection
 {
 bool Service::subscribe(const std::string& address, const Publisher& publisher)
 {
-    void* context = zmq_ctx_new();
-    void* socket = zmq_socket(context, ZMQ_REQ);
+    detail::ContextPtr context = detail::getContext();
+    void* socket = zmq_socket(context.get(), ZMQ_REQ);
+    if (!socket)
+    {
+        ZEROEQINFO << "Can't create socket: " << zmq_strerror(zmq_errno())
+                   << std::endl;
+        return false;
+    }
+
     const std::string zmqAddress = std::string("tcp://") + address;
     if (zmq_connect(socket, zmqAddress.c_str()) == -1)
     {
         ZEROEQINFO << "Can't reach connection broker at " << address
                    << std::endl;
         zmq_close(socket);
-        zmq_ctx_destroy(context);
         return false;
     }
 
@@ -59,7 +66,6 @@ bool Service::subscribe(const std::string& address, const Publisher& publisher)
     zmq_msg_close(&reply);
 
     zmq_close(socket);
-    zmq_ctx_destroy(context);
 
     return pubAddress == std::string(result);
 }
