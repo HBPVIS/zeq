@@ -37,7 +37,7 @@ set(ZEROEQ_SOURCES
   uri.cpp)
 
 set(ZEROEQ_LINK_LIBRARIES PUBLIC Servus
-                          PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${libzmq_LIBRARIES})
+                          PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${ZeroMQ_LIBRARY})
 if(MSVC)
   list(APPEND ZEROEQ_LINK_LIBRARIES Ws2_32)
 endif()
