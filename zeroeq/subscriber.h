@@ -8,6 +8,7 @@
 #define ZEROEQ_SUBSCRIBER_H
 
 #include <zeroeq/receiver.h> // base class
+#include <zeroeq/uri.h>      // used inline
 
 #include <vector>
 
@@ -58,16 +59,16 @@ public:
     ZEROEQ_API explicit Subscriber(const std::string& session);
 
     /**
-     * Create a subscriber which subscribes to a specific publisher.
+     * Create a subscriber which subscribes to specific publishers.
      *
      * Postconditions:
-     * - connected to the publisher on the given URI once publisher is running
-     *   on the URI
+     * - connected to the publishers on the given URIs once publishers are
+     * running on the URIs
      *
-     * @param uri publisher URI in the format [scheme://]*|host|IP|IF:port
-     * @throw std::runtime_error if URI is not fully qualified
+     * @param uris publisher URIs in the format [scheme://]*|host|IP|IF:port
+     * @throw std::runtime_error if an URI is not fully qualified
      */
-    ZEROEQ_API explicit Subscriber(const URI& uri);
+    ZEROEQ_API explicit Subscriber(const URIs& uris);
 
     /**
      * Create a default shared subscriber.
@@ -89,18 +90,27 @@ public:
     ZEROEQ_API Subscriber(const std::string& session, Receiver& shared);
 
     /**
-     * Create a shared subscriber which subscribes to publisher(s) on the given
-     * URI.
+     * Create a shared subscriber which subscribes to publishers on the given
+     * URIs.
      *
-     * @sa Subscriber( const URI& )
+     * @sa Subscriber( const URIs& )
      *
-     * @param uri publisher URI in the format [scheme://]*|host|IP|IF:port
+     * @param uris publisher URIs in the format [scheme://]*|host|IP|IF:port
      * @param shared another receiver to share data reception with
      */
-    ZEROEQ_API Subscriber(const URI& uri, Receiver& shared);
+    ZEROEQ_API Subscriber(const URIs& uris, Receiver& shared);
 
     /** Destroy this subscriber and withdraw any subscriptions. */
     ZEROEQ_API ~Subscriber();
+
+    explicit Subscriber(const URI& uri) //!< @deprecated
+        : Subscriber(URIs{uri})
+    {
+    }
+    Subscriber(const URI& uri, Receiver& shared) //!< @deprecated
+        : Subscriber(URIs{uri}, shared)
+    {
+    }
 
     /**
      * Subscribe a serializable object to receive updates from any connected

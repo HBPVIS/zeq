@@ -43,11 +43,13 @@ class Sender;
 class Subscriber;
 class URI;
 
+using URIs = std::vector<URI>; //!< A vector of URIs
+
 /** Callback for receival of subscribed event w/o payload. */
-typedef std::function<void()> EventFunc;
+using EventFunc = std::function<void()>;
 
 /** Callback for receival of subscribed event w/ payload. */
-typedef std::function<void(const void*, size_t)> EventPayloadFunc;
+using EventPayloadFunc = std::function<void(const void*, size_t)>;
 
 #ifdef WIN32
 typedef SOCKET SocketDescriptor;

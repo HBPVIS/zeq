@@ -45,24 +45,27 @@ public:
         update();
     }
 
-    Impl(const URI& uri)
+    Impl(const URIs& uris)
         : _context(detail::getContext())
         , _browser(PUBLISHER_SERVICE)
         , _selfInstance(detail::Sender::getUUID())
     {
-        if (uri.getScheme() == DEFAULT_SCHEMA &&
-            (uri.getHost().empty() || uri.getPort() == 0))
+        for (const URI& uri : uris)
         {
-            ZEROEQTHROW(std::runtime_error(
-                std::string("Non-fully qualified URI used for subscriber")));
-        }
+            if (uri.getScheme() == DEFAULT_SCHEMA &&
+                (uri.getHost().empty() || uri.getPort() == 0))
+            {
+                ZEROEQTHROW(std::runtime_error(std::string(
+                    "Non-fully qualified URI used for subscriber")));
+            }
 
-        const std::string& zmqURI = buildZmqURI(uri);
-        if (!addConnection(zmqURI, uint128_t()))
-        {
-            ZEROEQTHROW(std::runtime_error("Cannot connect subscriber to " +
-                                           zmqURI + ": " +
-                                           zmq_strerror(zmq_errno())));
+            const std::string& zmqURI = buildZmqURI(uri);
+            if (!addConnection(zmqURI, uint128_t()))
+            {
+                ZEROEQTHROW(std::runtime_error("Cannot connect subscriber to " +
+                                               zmqURI + ": " +
+                                               zmq_strerror(zmq_errno())));
+            }
         }
     }
 
@@ -292,9 +295,9 @@ Subscriber::Subscriber(const std::string& session)
 {
 }
 
-Subscriber::Subscriber(const URI& uri)
+Subscriber::Subscriber(const URIs& uris)
     : Receiver()
-    , _impl(new Impl(uri))
+    , _impl(new Impl(uris))
 {
 }
 
@@ -310,9 +313,9 @@ Subscriber::Subscriber(const std::string& session, Receiver& shared)
 {
 }
 
-Subscriber::Subscriber(const URI& uri, Receiver& shared)
+Subscriber::Subscriber(const URIs& uris, Receiver& shared)
     : Receiver(shared)
-    , _impl(new Impl(uri))
+    , _impl(new Impl(uris))
 {
 }
 

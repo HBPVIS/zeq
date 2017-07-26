@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2014-2015, Human Brain Project
+/* Copyright (c) 2014-2017, Human Brain Project
  *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
  *                          Stefan.Eilemann@epfl.ch
  */
@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_serializable)
     test::Echo echoIn;
 
     zeroeq::Publisher publisher(zeroeq::NULL_SESSION);
-    zeroeq::Subscriber subscriber(zeroeq::URI(publisher.getURI()));
+    zeroeq::Subscriber subscriber(publisher.getURI());
     test::Monitor monitor(publisher);
 
     BOOST_CHECK(subscriber.subscribe(echoIn));
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_event)
 {
     const std::string echoString("The quick brown fox");
     zeroeq::Publisher publisher(zeroeq::NULL_SESSION);
-    zeroeq::Subscriber subscriber(zeroeq::URI(publisher.getURI()));
+    zeroeq::Subscriber subscriber(publisher.getURI());
     test::Monitor monitor(publisher, subscriber);
 
     bool received = false;
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_event)
 BOOST_AUTO_TEST_CASE(publish_receive_empty_event)
 {
     zeroeq::Publisher publisher(zeroeq::NULL_SESSION);
-    zeroeq::Subscriber subscriber(zeroeq::URI(publisher.getURI()));
+    zeroeq::Subscriber subscriber(publisher.getURI());
     bool received = false;
     BOOST_CHECK(
         subscriber.subscribe(zeroeq::make_uint128("Empty"),
@@ -108,6 +108,44 @@ BOOST_AUTO_TEST_CASE(publish_receive_empty_event)
         {
             BOOST_CHECK(received);
             return;
+        }
+    }
+    BOOST_CHECK(!"reachable");
+}
+
+BOOST_AUTO_TEST_CASE(two_publishers)
+{
+    zeroeq::Publisher publisher1(zeroeq::NULL_SESSION);
+    zeroeq::Publisher publisher2(zeroeq::NULL_SESSION);
+    zeroeq::Subscriber subscriber(
+        zeroeq::URIs{publisher1.getURI(), publisher2.getURI()});
+    bool received = false;
+    BOOST_CHECK(
+        subscriber.subscribe(zeroeq::make_uint128("Empty"),
+                             zeroeq::EventFunc([&]() { received = true; })));
+
+    for (size_t i = 0; i < 10; ++i)
+    {
+        BOOST_CHECK(publisher1.publish(zeroeq::make_uint128("Empty")));
+
+        if (subscriber.receive(100))
+        {
+            BOOST_CHECK(received);
+            received = false;
+            while (subscriber.receive(100))
+                ; /* drain publisher1 events */
+
+            for (i = 0; i < 10; ++i)
+            {
+                BOOST_CHECK(publisher2.publish(zeroeq::make_uint128("Empty")));
+
+                if (subscriber.receive(100))
+                {
+                    BOOST_CHECK(received);
+                    return;
+                }
+            }
+            BOOST_CHECK(!"reachable");
         }
     }
     BOOST_CHECK(!"reachable");
@@ -211,7 +249,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
     zeroeq::Publisher publisher(
         zeroeq::URI("inproc://zeroeq.test.publish_receive_filters"),
         zeroeq::NULL_SESSION);
-    zeroeq::Subscriber subscriber(zeroeq::URI(publisher.getURI()));
+    zeroeq::Subscriber subscriber(publisher.getURI());
 
     // Make sure we're connected
     BOOST_CHECK(

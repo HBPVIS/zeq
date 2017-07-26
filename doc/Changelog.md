@@ -2,6 +2,8 @@
 
 # git master
 
+* [223](https://github.com/HBPVIS/ZeroEQ/pull/223):
+  Subscriber(uri) ctors are replaced by Subscriber(uris)
 * [218](https://github.com/HBPVIS/ZeroEQ/pull/218):
   Fix infinite loop in slow receivers
 * [215](https://github.com/HBPVIS/ZeroEQ/pull/215):
