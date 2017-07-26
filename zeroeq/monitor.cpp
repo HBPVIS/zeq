@@ -98,6 +98,10 @@ public:
     SocketImpl(Sender& sender)
         : _context(detail::getContext())
     {
+#if (ZMQ_VERSION < 40104)
+        ZEROEQTHROW(std::runtime_error(
+            "ZeroEQ version with bug in socket monitor, need at least 4.1.4"));
+#endif
         const auto inproc = std::string("inproc://zeroeq.monitor.") +
                             servus::make_UUID().getString();
 

@@ -39,12 +39,9 @@ BOOST_AUTO_TEST_CASE(publish_receive_serializable)
             {
                 BOOST_CHECK(!subscriber.receive(100));
                 BOOST_CHECK_EQUAL(monitor.connections, 0);
-
-                if (monitor.receive(10))
-                {
-                    BOOST_CHECK_EQUAL(monitor.connections, 1);
-                    return;
-                }
+                BOOST_CHECK(monitor.receive(500));
+                BOOST_CHECK_EQUAL(monitor.connections, 1);
+                return;
             }
             BOOST_CHECK(!"reachable");
             return;
@@ -81,8 +78,11 @@ BOOST_AUTO_TEST_CASE(publish_receive_event)
             BOOST_CHECK(publisher.publish(zeroeq::make_uint128("Echo"),
                                           echoString.c_str(),
                                           echoString.length()));
-            BOOST_CHECK(subscriber.receive(100)); // get second msg (sub or
-                                                  // monitor event)
+            if (monitor.connections == 0 || !received)
+            {
+                BOOST_CHECK(subscriber.receive(100)); // get second msg (sub
+                                                      // or monitor event)
+            }
             BOOST_CHECK(received);
             BOOST_CHECK_EQUAL(monitor.connections, 1);
             return;
