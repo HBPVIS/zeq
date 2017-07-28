@@ -23,6 +23,24 @@ public:
         , _servers(zmq_socket(getContext(), ZMQ_DEALER),
                    [](void* s) { ::zmq_close(s); })
     {
+        const char* serversEnv = getenv("ZEROEQ_SERVERS");
+        if (!serversEnv)
+            return;
+
+        std::string servers(serversEnv);
+        while (!servers.empty())
+        {
+            const size_t pos = servers.find(',');
+            const std::string server = servers.substr(0, pos);
+            servers = pos == std::string::npos ? std::string()
+                                               : servers.substr(pos + 1);
+
+            const auto& zmqURI = buildZmqURI(URI(server));
+            if (!addConnection(zmqURI))
+                ZEROEQTHROW(std::runtime_error("Cannot connect client to " +
+                                               zmqURI + ": " +
+                                               zmq_strerror(zmq_errno())));
+        }
     }
 
     explicit Impl(const URIs& uris)
@@ -38,11 +56,9 @@ public:
 
             const auto& zmqURI = buildZmqURI(uri);
             if (!addConnection(zmqURI))
-            {
                 ZEROEQTHROW(std::runtime_error("Cannot connect client to " +
                                                zmqURI + ": " +
                                                zmq_strerror(zmq_errno())));
-            }
         }
     }
 

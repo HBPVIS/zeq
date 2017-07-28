@@ -14,11 +14,6 @@
 
 #include <servus/servus.h>
 
-#ifdef _MSC_VER
-#define setenv(name, value, overwrite) _putenv_s(name, value)
-#define unsetenv(name) _putenv_s(name, nullptr)
-#endif
-
 BOOST_AUTO_TEST_CASE(create_uri_publisher)
 {
     const zeroeq::Publisher publisher(zeroeq::URI(""));

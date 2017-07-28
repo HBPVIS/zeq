@@ -38,6 +38,8 @@ public:
      * Create a default client.
      *
      * Postconditions:
+     * - connects to all servers set in the comma-separated environment variable
+     *   ZEROEQ_SERVERS
      * - discovers servers on _zeroeq_rep._tcp ZeroConf service
      * - filters session \<username\> or ZEROEQ_SERVER_SESSION from environment
      *
@@ -49,6 +51,8 @@ public:
      * Create a client which connects to servers from the given session.
      *
      * Postconditions:
+     * - connects to all servers set in the comma-separated environment variable
+     *   ZEROEQ_SERVERS
      * - discovers publishers on _zeroeq_rep._tcp ZeroConf service
      * - filters for given session
      *

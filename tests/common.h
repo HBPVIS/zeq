@@ -16,6 +16,8 @@
 #ifdef _WIN32
 #include <process.h>
 #define getpid _getpid
+#define setenv(name, value, overwrite) _putenv_s(name, value)
+#define unsetenv(name) _putenv_s(name, nullptr)
 #else
 #include <sys/types.h>
 #include <unistd.h>

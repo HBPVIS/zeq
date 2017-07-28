@@ -10,6 +10,7 @@
 #include <servus/servus.h>
 #include <servus/uri.h>
 
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -318,6 +319,45 @@ BOOST_AUTO_TEST_CASE(two_servers)
     thread1.join();
     thread2.join();
     BOOST_CHECK(serverHandled);
+}
+
+BOOST_AUTO_TEST_CASE(envconnect)
+{
+    test::Echo echo("The quick brown fox");
+    const test::Echo reply("Jumped over the lazy dog");
+
+    zeroeq::Server server1(zeroeq::NULL_SESSION);
+    zeroeq::Server server2(zeroeq::NULL_SESSION);
+    std::string servers(server1.getURI().getHost() + ":" +
+                        std::to_string(int(server1.getURI().getPort())) + "," +
+                        server2.getURI().getHost() + ":" +
+                        std::to_string(int(server2.getURI().getPort())));
+    setenv("ZEROEQ_SERVERS", servers.c_str(), 1);
+
+    zeroeq::Client client;
+
+    bool handled1 = false;
+    bool handled2 = false;
+    std::thread thread1([&] { handled1 = runOnce(server1, echo, reply); });
+    std::thread thread2([&] { handled2 = runOnce(server2, echo, reply); });
+
+    size_t handled = 0;
+    const auto func = [&](const zeroeq::uint128_t&, const void*, size_t) {
+        ++handled;
+    };
+    client.request(echo, func);
+    client.request(echo, func);
+
+    BOOST_CHECK_EQUAL(handled, 0);
+    BOOST_CHECK(client.receive(TIMEOUT));
+    if (handled < 2)
+        BOOST_CHECK(client.receive(TIMEOUT));
+    BOOST_CHECK_EQUAL(handled, 2);
+
+    thread1.join();
+    thread2.join();
+    BOOST_CHECK(handled1);
+    BOOST_CHECK(handled2);
 }
 
 BOOST_AUTO_TEST_CASE(two_clients)
