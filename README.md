@@ -17,6 +17,7 @@ ZeroEQ provides the following major features:
 * Publish events using zeroeq::Publisher
 * Subscribe to events using zeroeq::Subscriber
 * Web service APIs using zeroeq::http::Server using REST and JSON
+* Client-Server request-reply using zeroeq::Server and zeroeq::Client
 * Asynchronous, reliable transport using [ZeroMQ](http://www.zeromq.org)
 * Automatic publisher discovery using [Zeroconf](https://en.wikipedia.org/wiki/Zero-configuration_networking)
 * Serialization of events using [ZeroBuf](https://github.com/HBPVIS/ZeroBuf)
