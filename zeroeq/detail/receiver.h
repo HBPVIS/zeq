@@ -36,7 +36,6 @@ public:
                 std::runtime_error(std::string("Empty servus implementation")));
 
         _servus.beginBrowsing(servus::Servus::IF_ALL);
-        update();
     }
 
     Receiver(const std::string& service)
@@ -54,11 +53,12 @@ public:
 
     const std::string& getSession() const { return _session; }
 
-    void update()
+    bool update() //!< @return true if new connection made
     {
         if (!_servus.isBrowsing())
-            return;
+            return false;
 
+        bool updated = false;
         _servus.browse(0);
         const servus::Strings& instances = _servus.getInstances();
         for (const std::string& instance : instances)
@@ -76,10 +76,11 @@ public:
 
                 const uint128_t identifier(_servus.get(instance, KEY_INSTANCE));
                 zmq::SocketPtr socket = createSocket(identifier);
-                if (socket)
-                    _connect(zmqURI, socket);
+                if (socket && _connect(zmqURI, socket))
+                    updated = true;
             }
         }
+        return updated;
     }
 
     bool addConnection(const std::string& zmqURI)

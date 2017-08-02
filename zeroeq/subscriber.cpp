@@ -33,6 +33,7 @@ public:
                                                   : session)
         , _selfInstance(detail::Sender::getUUID())
     {
+        update();
     }
 
     Impl(const URIs& uris)

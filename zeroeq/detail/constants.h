@@ -21,8 +21,6 @@ const std::string KEY_USER("User");
 const std::string KEY_APPLICATION("Application");
 
 const std::string ENV_SESSION("ZEROEQ_SESSION");
-const std::string ENV_PUB_SESSION("ZEROEQ_PUB_SESSION");
-const std::string ENV_REP_SESSION("ZEROEQ_SERVER_SESSION");
 const std::string UNKNOWN_USER("Unknown user");
 
 const std::string DEFAULT_SCHEMA("tcp");

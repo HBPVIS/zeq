@@ -73,8 +73,10 @@ static const uint32_t TIMEOUT_INDEFINITE = 0xffffffffu;
 
 using servus::make_uint128;
 
-static const std::string DEFAULT_SESSION = "__zeroeq";
-static const std::string NULL_SESSION = "__null_session";
+static const std::string DEFAULT_SESSION ( "__zeroeq");
+static const std::string NULL_SESSION("__null_session");
+static const std::string ENV_PUB_SESSION("ZEROEQ_PUB_SESSION");
+static const std::string ENV_REP_SESSION("ZEROEQ_SERVER_SESSION");
 
 namespace detail
 {

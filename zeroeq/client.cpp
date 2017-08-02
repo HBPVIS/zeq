@@ -9,6 +9,7 @@
 #include "detail/receiver.h"
 
 #include <servus/servus.h>
+#include <thread>
 #include <unordered_map>
 
 namespace zeroeq
@@ -41,6 +42,8 @@ public:
                                                zmqURI + ": " +
                                                zmq_strerror(zmq_errno())));
         }
+
+        update();
     }
 
     explicit Impl(const URIs& uris)
@@ -131,21 +134,34 @@ public:
     }
 
 private:
-    bool _send(const void* data, const size_t size, const int flags)
+    bool _send(const void* data, const size_t size, int flags)
     {
         zmq_msg_t msg;
         zmq_msg_init_size(&msg, size);
         if (data)
             ::memcpy(zmq_msg_data(&msg), data, size);
-        int ret = zmq_msg_send(&msg, _servers.get(), flags);
-        zmq_msg_close(&msg);
 
-        if (ret != -1)
-            return true;
+        flags |= ZMQ_DONTWAIT;
+        while (true)
+        {
+            const int ret = zmq_msg_send(&msg, _servers.get(), flags);
+            if (ret == -1 && zmq_errno() == EAGAIN)
+            {
+                if (!update())
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            else
+            {
+                zmq_msg_close(&msg);
 
-        ZEROEQWARN << "Cannot send request: " << zmq_strerror(zmq_errno())
-                   << std::endl;
-        return false;
+                if (ret != -1)
+                    return true;
+
+                ZEROEQWARN << "Cannot send request: "
+                           << zmq_strerror(zmq_errno()) << std::endl;
+                return false;
+            }
+        }
     }
 
     /** @return true if more data available */

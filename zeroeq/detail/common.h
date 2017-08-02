@@ -101,11 +101,11 @@ inline std::string getApplicationName()
 
 inline std::string getDefaultPubSession()
 {
-    const char* pubSession = getenv(ENV_PUB_SESSION.c_str());
+    const char* pubSession = getenv(zeroeq::ENV_PUB_SESSION.c_str());
     const char* session = getenv(ENV_SESSION.c_str());
     if (session)
         ZEROEQWARN << "Found deprecated " << ENV_SESSION
-                   << " in environment, please use " << ENV_PUB_SESSION
+                   << " in environment, please use " << zeroeq::ENV_PUB_SESSION
                    << std::endl;
 
     if (pubSession && strcmp(pubSession, "") != 0)
@@ -117,7 +117,7 @@ inline std::string getDefaultPubSession()
 
 inline std::string getDefaultRepSession()
 {
-    const char* session = getenv(ENV_REP_SESSION.c_str());
+    const char* session = getenv(zeroeq::ENV_REP_SESSION.c_str());
     return session && strcmp(session, "") != 0 ? session : getApplicationName();
 }
 }
