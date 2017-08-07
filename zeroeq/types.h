@@ -20,7 +20,7 @@
 #endif
 
 /**
- * Publish-subscribe classes for typed events.
+ * Publish-subscribe and request-reply.
  *
  * A Publisher opens a listening port on the network, and publishes an Event on
  * this port. It announces its session for automatic discovery.
@@ -28,6 +28,9 @@
  * A Subscriber either explicitely subscribes to the publisher port, or uses
  * automatic discovery to find publishers using the same session. Automatic
  * discovery is implemented using zeroconf networking (avahi or Apple Bonjour).
+ *
+ * A Server serves requests from a Client. Like publish-subscribe, clients
+ * connect to servers using zeroconf discovery or explicit addressing.
  *
  * The connection::Broker and connection::Service may be used to introduce a
  * subscriber to a remote, not zeroconf visible, publisher.
@@ -46,16 +49,16 @@ class URI;
 
 using URIs = std::vector<URI>; //!< A vector of URIs
 
-/** Callback for receival of subscribed event w/o payload. */
+/** Callback for receival of subscribed event without payload. */
 using EventFunc = std::function<void()>;
 
-/** Callback for receival of subscribed event w/ payload. */
+/** Callback for receival of subscribed event with payload. */
 using EventPayloadFunc = std::function<void(const void*, size_t)>;
 
-/** Callback for the reply of a Client::request(). */
+/** Callback for the reply of a Client::request() (reply ID, reply data). */
 using ReplyFunc = std::function<void(const uint128_t&, const void*, size_t)>;
 
-/** Return value of HandleFunc */
+/** Return value of Server::handle() function (reply ID, reply data) */
 using ReplyData = std::pair<uint128_t, servus::Serializable::Data>;
 
 /** Callback for serving a Client::request() in Server::handle(). */
@@ -73,7 +76,7 @@ static const uint32_t TIMEOUT_INDEFINITE = 0xffffffffu;
 
 using servus::make_uint128;
 
-static const std::string DEFAULT_SESSION ( "__zeroeq");
+static const std::string DEFAULT_SESSION("__zeroeq");
 static const std::string NULL_SESSION("__null_session");
 static const std::string ENV_PUB_SESSION("ZEROEQ_PUB_SESSION");
 static const std::string ENV_REP_SESSION("ZEROEQ_SERVER_SESSION");
