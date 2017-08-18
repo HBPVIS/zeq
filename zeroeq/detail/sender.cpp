@@ -85,7 +85,10 @@ void Sender::announce()
 {
     if (!servus::Servus::isAvailable())
     {
-        ZEROEQTHROW(std::runtime_error("No zeroconf implementation available"));
+        ZEROEQWARN << "ZeroEQ::Sender: Cannot announce on Zeroconf; no "
+                      "implementation provided by Servus"
+                   << std::endl;
+        return;
     }
 
     _service.set("Type", "ZeroEQ");

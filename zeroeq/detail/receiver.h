@@ -32,8 +32,13 @@ public:
                 std::string("Invalid session name for browsing")));
 
         if (!servus::Servus::isAvailable())
-            ZEROEQTHROW(
-                std::runtime_error(std::string("Empty servus implementation")));
+        {
+            ZEROEQWARN << "ZeroEQ::Receiver: Cannot browse Zeroconf for "
+                          "incoming connections; no implementation provided by "
+                          "Servus"
+                       << std::endl;
+            return;
+        }
 
         _servus.beginBrowsing(servus::Servus::IF_ALL);
     }
@@ -52,7 +57,6 @@ public:
     }
 
     const std::string& getSession() const { return _session; }
-
     bool update() //!< @return true if new connection made
     {
         if (!_servus.isBrowsing())
@@ -100,7 +104,6 @@ protected:
     using SocketMap = std::map<std::string, zmq::SocketPtr>;
 
     void* getContext() { return _context.get(); }
-
     /**
      * Create the socket for the given instance, return nullptr if connection is
      * to be ignored.
@@ -108,7 +111,6 @@ protected:
     virtual zmq::SocketPtr createSocket(const uint128_t& instance) = 0;
 
     const SocketMap& getSockets() { return _sockets; }
-
     bool _connect(const std::string& zmqURI, zmq::SocketPtr socket)
     {
         if (zmq_connect(socket.get(), zmqURI.c_str()) == -1)
