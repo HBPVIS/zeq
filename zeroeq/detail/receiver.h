@@ -11,15 +11,18 @@
 
 #include "../log.h"
 
+#include <servus/listener.h>
 #include <servus/servus.h>
 #include <zmq.h>
+
+#include <algorithm>
 
 namespace zeroeq
 {
 namespace detail
 {
 /** Manages and updates a set of connections with a zeroconf browser. */
-class Receiver
+class Receiver : public servus::Listener
 {
 public:
     Receiver(const std::string& service, const std::string session)
@@ -40,6 +43,7 @@ public:
             return;
         }
 
+        _servus.addListener(this);
         _servus.beginBrowsing(servus::Servus::IF_ALL);
     }
 
@@ -53,7 +57,10 @@ public:
     virtual ~Receiver()
     {
         if (_servus.isBrowsing())
+        {
             _servus.endBrowsing();
+            _servus.addListener(this);
+        }
     }
 
     const std::string& getSession() const { return _session; }
@@ -62,29 +69,34 @@ public:
         if (!_servus.isBrowsing())
             return false;
 
-        bool updated = false;
+        _updated = false;
         _servus.browse(0);
-        const servus::Strings& instances = _servus.getInstances();
-        for (const std::string& instance : instances)
+        return _updated;
+    }
+
+    void instanceAdded(const std::string& instance) final
+    {
+        const std::string& zmqURI = _getZmqURI(instance);
+        if (_sockets.count(zmqURI) > 0) // Already got this instance
+            return;
+
+        const std::string& session = _servus.get(instance, KEY_SESSION);
+        if (_servus.containsKey(instance, KEY_SESSION) && !_session.empty() &&
+            session != _session)
         {
-            const std::string& zmqURI = _getZmqURI(instance);
-
-            if (_sockets.count(zmqURI) == 0) // New provider
-            {
-                const std::string& session = _servus.get(instance, KEY_SESSION);
-                if (_servus.containsKey(instance, KEY_SESSION) &&
-                    !_session.empty() && session != _session)
-                {
-                    continue;
-                }
-
-                const uint128_t identifier(_servus.get(instance, KEY_INSTANCE));
-                zmq::SocketPtr socket = createSocket(identifier);
-                if (socket && _connect(zmqURI, socket))
-                    updated = true;
-            }
+            return;
         }
-        return updated;
+
+        const uint128_t identifier(_servus.get(instance, KEY_INSTANCE));
+        zmq::SocketPtr socket = createSocket(identifier);
+        if (socket && _connect(zmqURI, socket))
+            _updated = true;
+    }
+
+    void instanceRemoved(const std::string& instance) final
+    {
+        if (_disconnect(_getZmqURI(instance)))
+            _updated = true;
     }
 
     bool addConnection(const std::string& zmqURI)
@@ -129,6 +141,27 @@ protected:
         return true;
     }
 
+    bool _disconnect(const std::string& zmqURI)
+    {
+        auto i = _sockets.find(zmqURI);
+        if (i == _sockets.end()) // Don't know this instance
+            return false;
+
+        auto socket = i->second;
+        if (zmq_disconnect(socket.get(), zmqURI.c_str()) == -1)
+        {
+            ZEROEQINFO << "Cannot disconnect from " << zmqURI << ": "
+                       << zmq_strerror(zmq_errno()) << std::endl;
+        }
+
+        std::remove_if(_entries.begin(), _entries.end(),
+                       [socket](const detail::Socket& candidate) {
+                           return candidate.socket == socket.get();
+                       });
+        _sockets.erase(i);
+        return true;
+    }
+
 private:
     servus::Servus _servus;
     const std::string _session;
@@ -136,6 +169,8 @@ private:
     zmq::ContextPtr _context;
     SocketMap _sockets;
     std::vector<detail::Socket> _entries;
+
+    bool _updated{false};
 
     std::string _getZmqURI(const std::string& instance)
     {
