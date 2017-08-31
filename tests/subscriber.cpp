@@ -1,7 +1,7 @@
 
-/* Copyright (c) 2014, Human Brain Project
- *                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>
- *                     Stefan.Eilemann@epfl.ch
+/* Copyright (c) 2014-2017, Human Brain Project
+ *                          Daniel Nachbaur <daniel.nachbaur@epfl.ch>
+ *                          Stefan.Eilemann@epfl.ch
  */
 
 #define BOOST_TEST_MODULE zeroeq_subscriber
@@ -13,14 +13,12 @@
 BOOST_AUTO_TEST_CASE(construction)
 {
     BOOST_CHECK_NO_THROW(zeroeq::Subscriber());
-    BOOST_CHECK_NO_THROW(
-        zeroeq::Subscriber subscriber(test::buildUniqueSession()));
+    BOOST_CHECK_NO_THROW(zeroeq::Subscriber subscriber("zeroeq_test_none"));
     BOOST_CHECK_NO_THROW(zeroeq::Subscriber(zeroeq::URI("localhost:1234")));
 
     zeroeq::Subscriber shared;
     BOOST_CHECK_NO_THROW(zeroeq::Subscriber((zeroeq::Receiver&)shared));
-    BOOST_CHECK_NO_THROW(
-        zeroeq::Subscriber(test::buildUniqueSession(), shared));
+    BOOST_CHECK_NO_THROW(zeroeq::Subscriber("zeroeq_test_none", shared));
     BOOST_CHECK_NO_THROW(
         zeroeq::Subscriber(zeroeq::URI("localhost:1234"), shared));
 }
@@ -117,6 +115,6 @@ BOOST_AUTO_TEST_CASE(not_implemented_servus)
     if (servus::Servus::isAvailable())
         return;
 
-    const zeroeq::URI uri(test::buildUniqueSession());
-    BOOST_CHECK_THROW(zeroeq::Subscriber subscriber(uri), std::runtime_error);
+    BOOST_CHECK_THROW(zeroeq::Subscriber subscriber("zeroeq_test_none"),
+                      std::runtime_error);
 }

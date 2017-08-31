@@ -25,14 +25,6 @@
 
 namespace test
 {
-std::string buildUniqueSession()
-{
-    std::string name =
-        std::string(boost::unit_test::framework::current_test_case().p_name);
-    std::replace(name.begin(), name.end(), '_', '-');
-    return name + std::to_string(getpid());
-}
-
 zeroeq::URI buildURI(const std::string& hostname, const zeroeq::Publisher& to)
 {
     zeroeq::URI uri = to.getURI();

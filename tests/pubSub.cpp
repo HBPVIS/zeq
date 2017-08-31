@@ -161,38 +161,26 @@ BOOST_AUTO_TEST_CASE(no_receive)
 
 BOOST_AUTO_TEST_CASE(subscribe_to_same_session_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Publisher publisher(test::buildUniqueSession());
+    zeroeq::Publisher publisher(servus::TEST_DRIVER);
     BOOST_CHECK_NO_THROW(zeroeq::Subscriber subscriber(publisher.getSession()));
 }
 
 BOOST_AUTO_TEST_CASE(subscribe_to_different_session_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Publisher publisher(test::buildUniqueSession());
+    zeroeq::Publisher publisher(servus::TEST_DRIVER);
     BOOST_CHECK_NO_THROW(
         zeroeq::Subscriber subscriber(publisher.getSession() + "bar"));
 }
 
 BOOST_AUTO_TEST_CASE(no_receive_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Subscriber subscriber(test::buildUniqueSession());
+    zeroeq::Subscriber subscriber(servus::TEST_DRIVER);
     BOOST_CHECK(!subscriber.receive(100));
 }
 
 BOOST_AUTO_TEST_CASE(publish_receive_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Publisher publisher(test::buildUniqueSession());
+    zeroeq::Publisher publisher(servus::TEST_DRIVER);
     zeroeq::Subscriber noSubscriber(publisher.getSession());
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
@@ -226,7 +214,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_zeroconf_disabled)
         return;
 
     zeroeq::Publisher publisher(zeroeq::NULL_SESSION);
-    zeroeq::Subscriber subscriber(test::buildUniqueSession());
+    zeroeq::Subscriber subscriber("zeroeq_test_none");
 
     BOOST_CHECK(
         subscriber.subscribe(test::Echo::IDENTIFIER(),
@@ -304,10 +292,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
 
 BOOST_AUTO_TEST_CASE(publish_receive_late_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Subscriber subscriber(test::buildUniqueSession());
+    zeroeq::Subscriber subscriber(servus::TEST_DRIVER);
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
     zeroeq::Publisher publisher(subscriber.getSession());
@@ -327,10 +312,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_late_zeroconf)
 
 BOOST_AUTO_TEST_CASE(publish_receive_empty_event_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Publisher publisher(test::buildUniqueSession());
+    zeroeq::Publisher publisher(servus::TEST_DRIVER);
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
     zeroeq::Subscriber subscriber(publisher.getSession());
@@ -380,10 +362,7 @@ public:
 
 BOOST_AUTO_TEST_CASE(publish_blocking_receive_zeroconf)
 {
-    if (!servus::Servus::isAvailable() || getenv("TRAVIS"))
-        return;
-
-    zeroeq::Subscriber subscriber(test::buildUniqueSession());
+    zeroeq::Subscriber subscriber(servus::TEST_DRIVER);
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
 

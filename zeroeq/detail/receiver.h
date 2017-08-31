@@ -26,7 +26,7 @@ class Receiver : public servus::Listener
 {
 public:
     Receiver(const std::string& service, const std::string session)
-        : _servus(service)
+        : _servus(session == servus::TEST_DRIVER ? session : service)
         , _session(session)
         , _context(detail::getContext())
     {
