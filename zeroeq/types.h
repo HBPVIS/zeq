@@ -32,11 +32,11 @@
  * A Server serves requests from a Client. Like publish-subscribe, clients
  * connect to servers using zeroconf discovery or explicit addressing.
  *
+ * A Monitor can be used on any Sender to receive notification on incoming
+ * connections.
+ *
  * The connection::Broker and connection::Service may be used to introduce a
  * subscriber to a remote, not zeroconf visible, publisher.
- *
- * An Event contains a strongly type, semantically defined message. Applications
- * or groups of applications can define their own vocabulary.
  */
 namespace zeroeq
 {

@@ -29,6 +29,7 @@ public:
 
     /** Notify of a new connection to the sender. */
     virtual void notifyNewConnection() {}
+
     class Impl;
 
 private:
