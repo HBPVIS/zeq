@@ -161,26 +161,26 @@ BOOST_AUTO_TEST_CASE(no_receive)
 
 BOOST_AUTO_TEST_CASE(subscribe_to_same_session_zeroconf)
 {
-    zeroeq::Publisher publisher(servus::TEST_DRIVER);
+    zeroeq::Publisher publisher(zeroeq::TEST_SESSION);
     BOOST_CHECK_NO_THROW(zeroeq::Subscriber subscriber(publisher.getSession()));
 }
 
 BOOST_AUTO_TEST_CASE(subscribe_to_different_session_zeroconf)
 {
-    zeroeq::Publisher publisher(servus::TEST_DRIVER);
+    zeroeq::Publisher publisher(zeroeq::TEST_SESSION);
     BOOST_CHECK_NO_THROW(
         zeroeq::Subscriber subscriber(publisher.getSession() + "bar"));
 }
 
 BOOST_AUTO_TEST_CASE(no_receive_zeroconf)
 {
-    zeroeq::Subscriber subscriber(servus::TEST_DRIVER);
+    zeroeq::Subscriber subscriber(zeroeq::TEST_SESSION);
     BOOST_CHECK(!subscriber.receive(100));
 }
 
 BOOST_AUTO_TEST_CASE(publish_receive_zeroconf)
 {
-    zeroeq::Publisher publisher(servus::TEST_DRIVER);
+    zeroeq::Publisher publisher(zeroeq::TEST_SESSION);
     zeroeq::Subscriber noSubscriber(publisher.getSession());
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_filters)
 
 BOOST_AUTO_TEST_CASE(publish_receive_late_zeroconf)
 {
-    zeroeq::Subscriber subscriber(servus::TEST_DRIVER);
+    zeroeq::Subscriber subscriber(zeroeq::TEST_SESSION);
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
     zeroeq::Publisher publisher(subscriber.getSession());
@@ -312,7 +312,7 @@ BOOST_AUTO_TEST_CASE(publish_receive_late_zeroconf)
 
 BOOST_AUTO_TEST_CASE(publish_receive_empty_event_zeroconf)
 {
-    zeroeq::Publisher publisher(servus::TEST_DRIVER);
+    zeroeq::Publisher publisher(zeroeq::TEST_SESSION);
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
     zeroeq::Subscriber subscriber(publisher.getSession());
@@ -362,7 +362,7 @@ public:
 
 BOOST_AUTO_TEST_CASE(publish_blocking_receive_zeroconf)
 {
-    zeroeq::Subscriber subscriber(servus::TEST_DRIVER);
+    zeroeq::Subscriber subscriber(zeroeq::TEST_SESSION);
     zeroeq::detail::Sender::getUUID() =
         servus::make_UUID(); // different machine
 

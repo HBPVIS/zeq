@@ -98,9 +98,9 @@ BOOST_AUTO_TEST_CASE(zeroconf_record)
 
 BOOST_AUTO_TEST_CASE(custom_session)
 {
-    const zeroeq::Publisher publisher(servus::TEST_DRIVER);
+    const zeroeq::Publisher publisher(zeroeq::TEST_SESSION);
 
-    servus::Servus service(servus::TEST_DRIVER);
+    servus::Servus service(zeroeq::TEST_SESSION);
     const servus::Strings& instances =
         service.discover(servus::Servus::IF_LOCAL, 1000);
     BOOST_REQUIRE_EQUAL(instances.size(), 1);
@@ -147,8 +147,8 @@ BOOST_AUTO_TEST_CASE(empty_session_from_environment)
 BOOST_AUTO_TEST_CASE(fixed_uri_and_session)
 {
     const zeroeq::Publisher publisher(zeroeq::URI("127.0.0.1"),
-                                      servus::TEST_DRIVER);
-    servus::Servus service(servus::TEST_DRIVER);
+                                      zeroeq::TEST_SESSION);
+    servus::Servus service(zeroeq::TEST_SESSION);
     const servus::Strings& instances =
         service.discover(servus::Servus::IF_LOCAL, 1000);
     BOOST_REQUIRE_EQUAL(instances.size(), 1);

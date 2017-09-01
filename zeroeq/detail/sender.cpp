@@ -35,7 +35,7 @@ Sender::Sender(const URI& uri_, const int type, const std::string service,
     : _context(getContext())
     , uri(uri_)
     , socket(zmq_socket(_context.get(), type), [](void* s) { ::zmq_close(s); })
-    , _service(session == servus::TEST_DRIVER ? session : service)
+    , _service(session == TEST_SESSION ? session : service)
     , _session(session)
 {
     const int hwm = 0;
