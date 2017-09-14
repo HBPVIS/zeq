@@ -38,10 +38,12 @@ if(NOT MSVC)
 endif()
 option(CPP-NETLIB_BUILD_TESTS "Build the cpp-netlib project tests." OFF)
 option(CPP-NETLIB_BUILD_EXAMPLES "Build the cpp-netlib project examples." OFF)
-add_subproject(cppnetlib ${PROJECT_SOURCE_DIR}/cppnetlib) # from .gitmodules
 
 common_find_package(Boost SYSTEM COMPONENTS unit_test_framework)
-common_find_package(cppnetlib SYSTEM NO_DEFAULT_PATH)
+if(Boost_VERSION VERSION_GREATER 1.57)
+  add_subproject(cppnetlib ${PROJECT_SOURCE_DIR}/cppnetlib) # from .gitmodules
+  common_find_package(cppnetlib SYSTEM NO_DEFAULT_PATH)
+endif()
 common_find_package(ZeroMQ) # new-ish CMake-based build
 if(NOT ZeroMQ_FOUND)
   common_find_package(libzmq 4 REQUIRED) # old-ish autopain/pkgconfig build
