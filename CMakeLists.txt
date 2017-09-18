@@ -40,7 +40,7 @@ option(CPP-NETLIB_BUILD_TESTS "Build the cpp-netlib project tests." OFF)
 option(CPP-NETLIB_BUILD_EXAMPLES "Build the cpp-netlib project examples." OFF)
 
 common_find_package(Boost SYSTEM COMPONENTS unit_test_framework)
-if(Boost_VERSION VERSION_GREATER 1.57)
+if(Boost_VERSION GREATER 105799)
   add_subproject(cppnetlib ${PROJECT_SOURCE_DIR}/cppnetlib) # from .gitmodules
   common_find_package(cppnetlib SYSTEM NO_DEFAULT_PATH)
 endif()

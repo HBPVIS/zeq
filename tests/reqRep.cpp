@@ -89,7 +89,9 @@ BOOST_AUTO_TEST_CASE(serializable)
 
     zeroeq::Server server(zeroeq::NULL_SESSION);
     zeroeq::Client client({server.getURI()});
+#if (ZMQ_VERSION >= 40104)
     test::Monitor monitor(server);
+#endif
 
     bool serverHandled = false;
     std::thread thread([&] { serverHandled = runOnce(server, echo, reply); });
@@ -111,9 +113,11 @@ BOOST_AUTO_TEST_CASE(serializable)
     BOOST_CHECK(client.receive(TIMEOUT));
     BOOST_CHECK(handled);
 
+#if (ZMQ_VERSION >= 40104)
     BOOST_CHECK_EQUAL(monitor.connections, 0);
     BOOST_CHECK(monitor.receive(TIMEOUT));
     BOOST_CHECK_EQUAL(monitor.connections, 1);
+#endif
 
     thread.join();
     BOOST_CHECK(serverHandled);
@@ -125,7 +129,9 @@ BOOST_AUTO_TEST_CASE(empty_request_raw)
 
     zeroeq::Server server(zeroeq::NULL_SESSION);
     zeroeq::Client client({server.getURI()});
+#if (ZMQ_VERSION >= 40104)
     test::Monitor monitor(server, client);
+#endif
 
     bool serverHandled = false;
     std::thread thread([&] { serverHandled = runOnce(server, {}, reply); });
@@ -145,13 +151,14 @@ BOOST_AUTO_TEST_CASE(empty_request_raw)
                    });
 
     BOOST_CHECK(!handled);
-    BOOST_CHECK_EQUAL(monitor.connections, 0);
     BOOST_CHECK(client.receive(TIMEOUT));
+#if (ZMQ_VERSION >= 40104)
     if (!handled || monitor.connections == 0)
     {
         BOOST_CHECK(client.receive(TIMEOUT));
     }
     BOOST_CHECK_EQUAL(monitor.connections, 1);
+#endif
     BOOST_CHECK(handled);
 
     thread.join();
