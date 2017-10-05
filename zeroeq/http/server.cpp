@@ -416,7 +416,9 @@ public:
         // remove leading '/'
         const auto path = message.request.path.substr(1);
 
-        if (!_methods[int(message.accessControlRequestMethod)].count(path))
+        const bool isSchemaRequest = _isSchemaRequest(message);
+        if (!_methods[int(message.accessControlRequestMethod)].count(path) &&
+            !isSchemaRequest)
         {
             message.response = make_ready_response(Code::NOT_SUPPORTED);
             return;
@@ -425,12 +427,25 @@ public:
         message.corsResponseHeaders = {
             {CorsResponseHeader::access_control_allow_headers, "Content-Type"},
             {CorsResponseHeader::access_control_allow_methods,
-             getAllowedMethods(path)},
+             isSchemaRequest ? "GET" : getAllowedMethods(path)},
             {CorsResponseHeader::access_control_allow_origin, "*"}};
         message.response = make_ready_response(Code::OK);
     }
 
 private:
+    bool _isSchemaRequest(Message& message) const
+    {
+        const auto path = message.request.path.substr(1);
+        if (!_endsWithSchema(path))
+            return false;
+
+        const auto endpoint = path.substr(0, path.find_last_of('/'));
+        if (_schemas.find(endpoint) == _schemas.end())
+            return false;
+
+        return message.accessControlRequestMethod == Method::GET;
+    }
+
     // key stores endpoints of Serializable objects lower-case, hyphenated,
     // with '/' separators
     // must be an ordered map in order to iterate from the most specific path

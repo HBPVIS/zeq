@@ -265,8 +265,8 @@ private:
 
         BOOST_CHECK_MESSAGE(status(response) == expected.status,
                             "At l." + std::to_string(line) + ": " +
-                                std::to_string(status(response)) +
-                                " != " + std::to_string(int(expected.status)));
+                                std::to_string(status(response)) + " != " +
+                                std::to_string(int(expected.status)));
 
         std::map<std::string, std::string> expectedHeaders{
             {"Content-Length", std::to_string(expected.body.size())}};
@@ -847,8 +847,8 @@ BOOST_AUTO_TEST_CASE(handle_headers)
         {"Last-Modified", modified},
         {"Location", location},
         {"Retry-After", retry}};
-    const Response expectedResponse{ServerReponse::ok,
-                                    "path/suffix:", expectedHeaders};
+    const Response expectedResponse{ServerReponse::ok, "path/suffix:",
+                                    expectedHeaders};
 
     for (int method = 0; method < int(zeroeq::http::Method::ALL); ++method)
     {
@@ -875,10 +875,10 @@ BOOST_AUTO_TEST_CASE(cors_preflight_request)
     Client client(server.getURI());
     const auto request = std::string("/test/foo");
 
-    Response response(ServerReponse::ok, std::string(),
-                      {{"Access-Control-Allow-Headers", "Content-Type"},
-                       {"Access-Control-Allow-Methods", "GET, PUT"},
-                       {"Access-Control-Allow-Origin", "*"}});
+    const Response response(ServerReponse::ok, std::string(),
+                            {{"Access-Control-Allow-Headers", "Content-Type"},
+                             {"Access-Control-Allow-Methods", "GET, PUT"},
+                             {"Access-Control-Allow-Origin", "*"}});
     client.checkCORSPreflight(request, "GET", response, __LINE__);
     client.checkCORSPreflight(request, "PUT", response, __LINE__);
 
@@ -886,6 +886,20 @@ BOOST_AUTO_TEST_CASE(cors_preflight_request)
     client.checkCORSPreflight(request, "PATCH", error405, __LINE__);
     client.checkCORSPreflight(request, "DELETE", error405, __LINE__);
     client.checkCORSPreflight(request, "OPTIONS", error405, __LINE__);
+
+    const Response responseSchema(ServerReponse::ok, std::string(),
+                                  {{"Access-Control-Allow-Headers",
+                                    "Content-Type"},
+                                   {"Access-Control-Allow-Methods", "GET"},
+                                   {"Access-Control-Allow-Origin", "*"}});
+    const auto requestSchema = std::string("/test/foo/schema");
+
+    client.checkCORSPreflight(requestSchema, "GET", responseSchema, __LINE__);
+    client.checkCORSPreflight(requestSchema, "PUT", error405, __LINE__);
+    client.checkCORSPreflight(requestSchema, "POST", error405, __LINE__);
+    client.checkCORSPreflight(requestSchema, "PATCH", error405, __LINE__);
+    client.checkCORSPreflight(requestSchema, "DELETE", error405, __LINE__);
+    client.checkCORSPreflight(requestSchema, "OPTIONS", error405, __LINE__);
 
     running = false;
     thread.join();
