@@ -99,6 +99,13 @@ void Sender::announce()
         _service.set(KEY_SESSION, _session);
 
     const auto& result = _service.announce(uri.getPort(), getAddress());
+    if (result == servus::Servus::Result::NOT_SUPPORTED)
+    {
+        ZEROEQWARN << "ZeroEQ::Sender: Cannot announce on Zeroconf; no "
+                      "implementation provided by Servus"
+                   << std::endl;
+        return;
+    }
     if (!result)
         ZEROEQTHROW(std::runtime_error("Zeroconf announce failed: " +
                                        result.getString()));

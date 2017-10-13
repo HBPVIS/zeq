@@ -2,6 +2,8 @@
 
 # git master
 
+* [226](https://github.com/HBPVIS/ZeroEQ/pull/226):
+  Better failsafe when announcement is not supported by Servus
 * [225](https://github.com/HBPVIS/ZeroEQ/pull/225):
   Fix #224: Handle exceptions in server handlers
 * [219](https://github.com/HBPVIS/ZeroEQ/pull/219):
