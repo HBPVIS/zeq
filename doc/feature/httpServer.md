@@ -161,7 +161,7 @@ tracks the implementation.
 
 Resolved: Yes, when maintenance becomes a burden.
 
-Removing the generic conversion and emiting specific code in the
+Removing the generic conversion and emitting specific code in the
 generator simplifies the implementation significantly. It does however
 remove the capability to translate to and from JSON in an indepent
 component which does not have access to the application-specific

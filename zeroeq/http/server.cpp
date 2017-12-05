@@ -689,7 +689,7 @@ bool Server::process(detail::Socket&)
         {
             message->response =
                 make_ready_response(Code::INTERNAL_SERVER_ERROR,
-                                    "An unknown exception occured");
+                                    "An unknown exception occurred");
         }
 
         // When a client makes a CORS request (by setting an 'Origin' header) it

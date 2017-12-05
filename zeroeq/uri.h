@@ -13,7 +13,7 @@
 namespace zeroeq
 {
 /**
- * Enhances servus::URI to guarantee the existance of a schema and to allow
+ * Enhances servus::URI to guarantee the existence of a schema and to allow
  * construction of [host][:port] URIs from string.
  */
 class URI : private servus::URI

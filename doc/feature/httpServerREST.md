@@ -22,7 +22,7 @@ None, cppnetlib 0.13 already offers the required functionality.
 
 ## API
 
-To fullfill the requirements with minimal API changes, we propose a generic
+To fulfill the requirements with minimal API changes, we propose a generic
 interface as follows:
 
     namespace zeroeq
