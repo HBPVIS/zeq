@@ -39,7 +39,7 @@ private:
     Monitor& operator=(const Monitor&) = delete;
 
     // Receiver API
-    void addSockets(std::vector<zeroeq::detail::Socket>& entries) final;
-    bool process(zeroeq::detail::Socket& socket) final;
+    ZEROEQ_API void addSockets(std::vector<zeroeq::detail::Socket>& entries) final;
+    ZEROEQ_API bool process(zeroeq::detail::Socket& socket) final;
 };
 }

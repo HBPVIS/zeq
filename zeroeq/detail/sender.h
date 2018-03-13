@@ -32,7 +32,7 @@ public:
     void addSockets(std::vector<zeroeq::detail::Socket>& entries);
 
     const std::string& getSession() const { return _session; }
-    static uint128_t& getUUID();
+    ZEROEQ_API static uint128_t& getUUID();
 
     URI uri;
     zmq::SocketPtr socket;

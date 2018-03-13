@@ -103,11 +103,11 @@ public:
     /** Destroy this subscriber and withdraw any subscriptions. */
     ZEROEQ_API ~Subscriber();
 
-    explicit Subscriber(const URI& uri) //!< @deprecated
+    ZEROEQ_API explicit Subscriber(const URI& uri) //!< @deprecated
         : Subscriber(URIs{uri})
     {
     }
-    Subscriber(const URI& uri, Receiver& shared) //!< @deprecated
+    ZEROEQ_API Subscriber(const URI& uri, Receiver& shared) //!< @deprecated
         : Subscriber(URIs{uri}, shared)
     {
     }

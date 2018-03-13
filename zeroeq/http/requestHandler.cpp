@@ -22,12 +22,15 @@ namespace http
 {
 namespace
 {
-int _getContentLength(const HTTPServer::request& request)
+size_t _getContentLength(const HTTPServer::request& request)
 {
     for (const auto& i : request.headers)
     {
         if (i.name == "Content-Length")
-            return std::stoi(i.value);
+        {
+            int size = std::stoi(i.value);
+            return (size > 0) ? size : 0;
+        }
     }
     return 0;
 }
@@ -216,7 +219,7 @@ private:
     const HTTPServer::request& _request;
     void* _socket;
     std::string _body;
-    int _size = 0;
+    size_t _size = 0;
 };
 } // anonymous namespace
 

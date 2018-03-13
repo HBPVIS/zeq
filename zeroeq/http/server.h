@@ -56,7 +56,7 @@ public:
     ZEROEQHTTP_API Server(const URI& uri, Receiver& shared);
     ZEROEQHTTP_API explicit Server(const URI& uri);
     ZEROEQHTTP_API explicit Server(Receiver& shared);
-    explicit Server(Server& shared)
+    ZEROEQHTTP_API explicit Server(Server& shared)
         : Server(static_cast<Receiver&>(shared))
     {
     }
@@ -112,7 +112,7 @@ public:
      * @return true if subscription was successful, false otherwise
      * @sa Request
      */
-    bool handle(Method method, const std::string& endpoint, RESTFunc func);
+    ZEROEQHTTP_API bool handle(Method method, const std::string& endpoint, RESTFunc func);
 
     /** @name Object registration for PUT and GET requests */
     //@{
