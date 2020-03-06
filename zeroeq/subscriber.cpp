@@ -95,7 +95,7 @@ public:
         zmq_msg_recv(&msg, socket.socket, 0);
 
         uint128_t type;
-        memcpy(&type, zmq_msg_data(&msg), sizeof(type));
+        memcpy(reinterpret_cast<void*>(&type), zmq_msg_data(&msg), sizeof(type));
 #ifndef ZEROEQ_LITTLEENDIAN
         detail::byteswap(type); // convert from little endian wire
 #endif

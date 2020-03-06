@@ -6,6 +6,8 @@ if(NOT BOOST_FOUND)
   return()
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=shadow")
+
 set(TEST_LIBRARIES ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ZeroEQ
   ${CMAKE_THREAD_LIBS_INIT})
 
